@@ -1,0 +1,3820 @@
+Title: API guide — CKAN 2.13.0a0 documentation
+
+URL Source: https://docs.ckan.org/en/latest/api/index.html
+
+Markdown Content:
+Warning
+
+This is the documentation for the latest development version of CKAN, which may be unstable. For other stable releases check the selector at the bottom left corner of the page.
+
+User guide
+Sysadmin guide
+Maintainer’s guide
+API guide
+Legacy APIs
+Making an API request
+Example: Importing datasets with the CKAN API
+API versions
+Authentication and API tokens
+GET-able API functions
+JSONP support
+API Examples
+Action API reference
+Extending guide
+Theming guide
+Contributing guide
+Changelog
+Skip the observability tax. 20K+ devs traded Datadog, Sentry, & New Relic for one clean UI.
+Ad by EthicalAds   ·   ℹ️
+ API guide
+View page source
+API guide
+
+This section documents CKAN APIs, for developers who want to write code that interacts with CKAN sites and their data.
+
+CKAN’s Action API is a powerful, RPC-style API that exposes all of CKAN’s core features to API clients. All of a CKAN website’s core functionality (everything you can do with the web interface and more) can be used by external code that calls the CKAN API. For example, using the CKAN API your app can:
+
+Get JSON-formatted lists of a site’s datasets, groups or other CKAN objects:
+
+http://demo.ckan.org/api/3/action/package_list
+
+http://demo.ckan.org/api/3/action/group_list
+
+http://demo.ckan.org/api/3/action/tag_list
+
+Get a full JSON representation of a dataset, resource or other object:
+
+http://demo.ckan.org/api/3/action/package_show?id=adur_district_spending
+
+http://demo.ckan.org/api/3/action/tag_show?id=gold
+
+http://demo.ckan.org/api/3/action/group_show?id=data-explorer
+
+Search for packages or resources matching a query:
+
+http://demo.ckan.org/api/3/action/package_search?q=spending
+
+http://demo.ckan.org/api/3/action/resource_search?query=name:District%20Names
+
+Create, update and delete datasets, resources and other objects
+
+Get an activity stream of recently changed datasets on a site:
+
+http://demo.ckan.org/api/3/action/recently_changed_packages_activity_list
+
+Note
+
+CKAN’s FileStore and DataStore have their own APIs, see:
+
+FileStore and file uploads
+
+DataStore extension
+
+Note
+
+For documentation of CKAN’s legacy API’s, see Legacy APIs.
+
+Note
+
+On early CKAN versions, datasets were called “packages” and this name has stuck in some places, specially internally and on API calls. Package has exactly the same meaning as “dataset”.
+
+Making an API request
+
+To call the CKAN API, post a JSON dictionary in an HTTP POST request to one of CKAN APIs URLs. The parameters for the API function should be given in the JSON dictionary. CKAN will also return its response in a JSON dictionary.
+
+One way to post a JSON dictionary to a URL is using the command-line client Curl. For example, to get a list of the names of all the datasets in the data-explorer group on demo.ckan.org, install curl and then call the group_list API function by running this command in a terminal:
+
+curl https://demo.ckan.org/api/3/action/group_list
+
+
+Alternatively, for Python users, we recommend using the ckanapi library which provides a simpler and more robust way to interact with CKAN APIs. To install it, run:
+
+pip install ckanapi
+
+
+Then you can make the same API call with just a few lines of Python code:
+
+from ckanapi import RemoteCKAN
+
+ckan = RemoteCKAN('https://demo.ckan.org')
+result = ckan.action.group_list()
+print(result)
+
+
+The response from CKAN will look like this:
+
+{
+    "help": "https://demo.ckan.org/api/3/action/help_show?name=group_list",
+    "success": true,
+    "result": ["david", "roger"]
+}
+
+
+The response is a JSON dictionary with three keys:
+
+"success": true or false.
+
+The API aims to always return 200 OK as the status code of its HTTP response, whether there were errors with the request or not, so it’s important to always check the value of the "success" key in the response dictionary and (if success is false) check the value of the "error" key.
+
+Note
+
+If there are major formatting problems with a request to the API, CKAN may still return an HTTP response with a 409, 400 or 500 status code (in increasing order of severity). In future CKAN versions we intend to remove these responses, and instead send a 200 OK response and use the "success" and "error" items.
+
+"result": the returned result from the function you called. The type and value of the result depend on which function you called. In the case of the group_list function it’s a list of strings, the names of all the groups on the site.
+
+If there was an error responding to your request, the dictionary will contain an "error" key with details of the error instead of the "result" key. A response dictionary containing an error will look like this:
+
+{
+    "help": "Creates a package",
+    "success": false,
+    "error": {
+        "message": "Access denied",
+        "__type": "Authorization Error"
+        }
+ }
+
+
+"help": the documentation string for the function you called.
+
+The same HTTP request can be made using Python with the ckanapi package:
+
+#!/usr/bin/env python
+from ckanapi import RemoteCKAN
+
+# Create a connection to the CKAN site
+ckan = RemoteCKAN('https://demo.ckan.org')
+
+# Make the API request using the action shortcut
+result = ckan.action.group_list()
+
+print(result)
+
+Example: Importing datasets with the CKAN API
+
+You can add datasets using CKAN’s web interface, but when importing many datasets it’s usually more efficient to automate the process in some way. Here’s an example of a Python script that uses the ckanapi package to import datasets into CKAN.
+
+Todo
+
+Make this script more interesting (eg. read data from a CSV file), and all put the script in a .py file somewhere with tests and import it here.
+
+#!/usr/bin/env python
+import pprint
+from ckanapi import RemoteCKAN
+
+# Create a connection to the CKAN site with your API token
+# Replace 'your-api-token' with your actual API token
+ckan = RemoteCKAN('http://www.my_ckan_site.com', apikey='your-api-token')
+
+# Put the details of the dataset we're going to create into a dict.
+dataset_dict = {
+    'name': 'my_dataset_name',
+    'notes': 'A long description of my dataset',
+    'owner_org': 'org_id_or_name'
+}
+
+# Use the ckanapi action shortcut to create a new dataset
+created_package = ckan.action.package_create(**dataset_dict)
+
+# See the result
+pprint.pprint(created_package)
+
+
+For more examples, see API Examples.
+
+API versions
+
+The CKAN APIs are versioned. If you make a request to an API URL without a version number, CKAN will choose the latest version of the API:
+
+http://demo.ckan.org/api/action/package_list
+
+
+Alternatively, you can specify the desired API version number in the URL that you request:
+
+http://demo.ckan.org/api/3/action/package_list
+
+
+Version 3 is currently the only version of the Action API.
+
+We recommend that you specify the API version number in your requests, because this ensures that your API client will work across different sites running different version of CKAN (and will keep working on the same sites, when those sites upgrade to new versions of CKAN). Because the latest version of the API may change when a site is upgraded to a new version of CKAN, or may differ on different sites running different versions of CKAN, the result of an API request that doesn’t specify the API version number cannot be relied on.
+
+Authentication and API tokens
+
+Some API functions require authorization. The API uses the same authorization functions and configuration as the web interface, so if a user is authorized to do something in the web interface they’ll be authorized to do it via the API as well.
+
+When calling an API function that requires authorization, you must authenticate yourself by providing an API token. Tokens are encrypted keys that can be generated manually from the UI (User Profile > Manage > API tokens) or via the api_token_create() function. A user can create as many tokens as needed for different uses, and revoke one or multiple tokens at any time. In addition, enabling the expire_api_token core plugin allows to define the expiration timestamp for a token.
+
+Site maintainers can use API Token Settings to configure the token generation.
+
+To provide your API token in an HTTP request, include it in an Authorization header. (The name of the HTTP header can be configured with the :ref:apitoken_header_name option in your CKAN configuration file.)
+
+For example, to ask whether or not you’re currently following the user markw on demo.ckan.org using curl, run this command:
+
+curl -H "Authorization: XXX"  https://demo.ckan.org/api/3/action/am_following_user?id=markw
+
+
+(Replacing XXX with your API token.)
+
+Or, to get the list of activities from your user dashboard on demo.ckan.org, run this Python code:
+
+from ckanapi import RemoteCKAN
+
+# Create a connection with your API token
+# Replace 'XXX' with your actual API token
+ckan = RemoteCKAN('https://demo.ckan.org', apikey='XXX')
+result = ckan.action.dashboard_activity_list()
+
+GET-able API functions
+
+Functions defined in ckan.logic.action.get can also be called with an HTTP GET request. For example, to get the list of datasets (packages) from demo.ckan.org, open this URL in your browser:
+
+http://demo.ckan.org/api/3/action/package_list
+
+Or, to search for datasets (packages) matching the search query spending, on demo.ckan.org, open this URL in your browser:
+
+http://demo.ckan.org/api/3/action/package_search?q=spending
+
+Tip
+
+Browser plugins like JSONView for Firefox or Chrome will format and color CKAN’s JSON response nicely in your browser.
+
+The search query is given as a URL parameter ?q=spending. Multiple URL parameters can be appended, separated by & characters, for example to get only the first 10 matching datasets open this URL:
+
+http://demo.ckan.org/api/3/action/package_search?q=spending&rows=10
+
+When an action requires a list of strings as the value of a parameter, the value can be sent by giving the parameter multiple times in the URL:
+
+http://demo.ckan.org/api/3/action/term_translation_show?terms=russian&terms=romantic%20novel
+
+JSONP support
+
+To cater for scripts from other sites that wish to access the API, the data can be returned in JSONP format, where the JSON data is ‘padded’ with a function call. The function is named in the ‘callback’ parameter. For example:
+
+http://demo.ckan.org/api/3/action/package_show?id=adur_district_spending&callback=myfunction
+
+Note
+
+This only works for GET requests
+
+API Examples
+Python API Examples
+
+These examples show how to use the ckanapi Python library to interact with CKAN APIs from Python code.
+
+Basic Usage
+
+First, install the ckanapi library:
+
+pip install ckanapi
+
+
+Simple data retrieval (no authentication required):
+
+from ckanapi import RemoteCKAN
+
+# Connect to any CKAN site
+ckan = RemoteCKAN('https://demo.ckan.org')
+
+# Get a list of all datasets
+datasets = ckan.action.package_list()
+print(f"Found {len(datasets)} datasets")
+
+
+Working with authentication:
+
+from ckanapi import RemoteCKAN
+
+# Connect with your API token for authenticated requests
+ckan = RemoteCKAN('https://your-ckan-site.com', apikey='your-api-token')
+
+# Create a new dataset (requires authentication)
+new_dataset = ckan.action.package_create(
+    name='my-new-dataset',
+    title='My New Dataset',
+    notes='A description of my dataset'
+)
+
+
+File uploads using ckanapi:
+
+from ckanapi import RemoteCKAN
+
+ckan = RemoteCKAN('https://your-ckan-site.com', apikey='your-api-token')
+
+# Upload a file and attach it to a dataset
+resource = ckan.action.resource_create(
+    package_id='my-dataset-id',
+    name='My Data File',
+    upload=open('/path/to/my/file.csv', 'rb')
+)
+
+Tags (not in a vocabulary)
+
+A list of all tags:
+
+browser: http://demo.ckan.org/api/3/action/tag_list
+
+curl: curl http://demo.ckan.org/api/3/action/tag_list
+
+ckanapi: ckanapi -r http://demo.ckan.org action tag_list
+
+Top 10 tags used by datasets:
+
+browser: http://demo.ckan.org/api/action/package_search?facet.field=[%22tags%22]&facet.limit=10&rows=0
+
+curl: curl 'http://demo.ckan.org/api/action/package_search?facet.field=\["tags"\]&facet.limit=10&rows=0'
+
+ckanapi: ckanapi -r http://demo.ckan.org action package_search facet.field='["tags"]' facet.limit=10 rows=0
+
+All datasets that have tag ‘economy’:
+
+browser: http://demo.ckan.org/api/3/action/package_search?fq=tags:economy
+
+curl: curl 'http://demo.ckan.org/api/3/action/package_search?fq=tags:economy'
+
+ckanapi: ckanapi -r http://demo.ckan.org action package_search fq='tags:economy'
+
+Tag Vocabularies
+
+Top 10 tags and vocabulary tags used by datasets:
+
+browser: http://demo.ckan.org/api/action/package_search?facet.field=[%22tags%22]&facet.limit=10&rows=0
+
+curl: curl 'http://demo.ckan.org/api/action/package_search?facet.field=\["tags"\]&facet.limit=10&rows=0'
+
+ckanapi: ckanapi -r http://demo.ckan.org action package_search facet.field='["tags"]' facet.limit=10 rows=0
+
+e.g. Facet: vocab_Topics means there is a vocabulary called Topics, and its top tags are listed under it.
+
+A list of datasets using tag ‘education’ from vocabulary ‘Topics’:
+
+browser: https://data.hdx.rwlabs.org/api/3/action/package_search?fq=vocab_Topics:education
+
+curl: curl 'https://data.hdx.rwlabs.org/api/3/action/package_search?fq=vocab_Topics:education'
+
+ckanapi: ckanapi -r https://data.hdx.rwlabs.org action package_search fq='vocab_Topics:education'
+
+Uploading a new version of a resource file
+
+You can use the upload parameter of the resource_patch() function to upload a new version of a resource file. This requires a multipart/form-data request, with curl you can do this using the @file.csv:
+
+curl -X POST  -H "Content-Type: multipart/form-data"  -H "Authorization: XXXX"  -F "id=<resource_id>" -F "upload=@updated_file.csv" https://demo.ckan.org/api/3/action/resource_patch
+
+
+The same operation can be done with ckanapi:
+
+from ckanapi import RemoteCKAN
+
+ckan = RemoteCKAN('https://demo.ckan.org', apikey='XXXX')
+
+with open('updated_file.csv', 'rb') as f:
+    result = ckan.action.resource_patch(
+        id='<resource_id>',
+        upload=('updated_file.csv', f)
+    )
+
+Action API reference
+
+Note
+
+If you call one of the action functions listed below and the function raises an exception, the API will return a JSON dictionary with keys "success": false and an "error" key indicating the exception that was raised.
+
+For example member_list() (which returns a list of the members of a group) raises NotFound if the group doesn’t exist. If you called it over the API, you’d get back a JSON dict like this:
+
+{
+    "success": false
+    "error": {
+        "__type": "Not Found Error",
+        "message": "Not found"
+    },
+    "help": "...",
+}
+
+ckan.logic.action.get
+
+API functions for searching for and getting data from CKAN.
+
+ckan.logic.action.get.package_list(context: Context, data_dict: dict[str, Any])→ Sequence[str]
+
+Return a list of the names of the site’s datasets (packages).
+
+Parameters
+:
+
+limit (int) – if given, the list of datasets will be broken into pages of at most limit datasets per page and only one page will be returned at a time (optional)
+
+offset (int) – when limit is given, the offset to start returning packages from
+
+Return type
+:
+
+list of strings
+
+ckan.logic.action.get.current_package_list_with_resources(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return a list of the site’s datasets (packages) and their resources.
+
+The list is sorted most-recently-modified first.
+
+Parameters
+:
+
+limit (int) – if given, the list of datasets will be broken into pages of at most limit datasets per page and only one page will be returned at a time (optional)
+
+offset (int) – when limit is given, the offset to start returning packages from
+
+page (int) – when limit is given, which page to return, Deprecated: use offset
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.member_list(context: Context, data_dict: dict[str, Any])→ List[Tuple[Any, ...]]
+
+Return the members of a group.
+
+The user must have permission to ‘get’ the group.
+
+Parameters
+:
+
+id (string) – the id or name of the group
+
+object_type (string) – restrict the members returned to those of a given type, e.g. 'user' or 'package' (optional, default: None)
+
+capacity (string) – restrict the members returned to those with a given capacity, e.g. 'member', 'editor', 'admin', 'public', 'private' (optional, default: None)
+
+Return type
+:
+
+list of (id, type, capacity) tuples
+
+Raises
+:
+
+ckan.logic.NotFound: if the group doesn’t exist
+
+ckan.logic.action.get.package_collaborator_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of all collaborators for a given package.
+
+Currently you must be an Admin on the package owner organization to manage collaborators.
+
+Note: This action requires the collaborators feature to be enabled with the ckan.auth.allow_dataset_collaborators configuration option.
+
+Parameters
+:
+
+id (string) – the id or name of the package
+
+capacity (string) – (optional) If provided, only users with this capacity are returned
+
+Returns
+:
+
+a list of collaborators, each a dict including the package and user id, the capacity and the last modified date
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.package_collaborator_list_for_user(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return a list of all package the user is a collaborator in
+
+Note: This action requires the collaborators feature to be enabled with the ckan.auth.allow_dataset_collaborators configuration option.
+
+Parameters
+:
+
+id (string) – the id or name of the user
+
+capacity (string) – (optional) If provided, only packages where the user has this capacity are returned
+
+Returns
+:
+
+a list of packages, each a dict including the package id, the capacity and the last modified date
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.group_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return a list of the names of the site’s groups.
+
+Parameters
+:
+
+type (string) – the type of group to list (optional, default: 'group'), See docs for IGroupForm
+
+order_by (string) – the field to sort the list by, must be 'name' or 'packages' (optional, default: 'name') Deprecated use sort.
+
+sort (string) – sorting of the search results. Optional. Default: “title asc” string of field name and sort-order. The allowed fields are ‘name’, ‘package_count’ and ‘title’
+
+limit (int) – the maximum number of groups returned (optional) Default: 1000 when all_fields=false unless set in site’s configuration ckan.group_and_organization_list_max Default: 25 when all_fields=true unless set in site’s configuration ckan.group_and_organization_list_all_fields_max
+
+offset (int) – when limit is given, the offset to start returning groups from
+
+groups (list of strings) – a list of names of the groups to return, if given only groups whose names are in this list will be returned (optional)
+
+all_fields (bool) – return group dictionaries instead of just names. Only core fields are returned - get some more using the include_* options. Returning a list of packages is too expensive, so the packages property for each group is deprecated, but there is a count of the packages in the package_count property. (optional, default: False)
+
+include_dataset_count (bool) – if all_fields, include the full package_count (optional, default: True)
+
+include_extras (bool) – if all_fields, include the group extra fields (optional, default: False)
+
+include_groups (bool) – if all_fields, include the groups the groups are in (optional, default: False).
+
+include_users (bool) – if all_fields, include the group users (optional, default: False).
+
+Return type
+:
+
+list of strings
+
+ckan.logic.action.get.organization_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return a list of the names of the site’s organizations.
+
+Parameters
+:
+
+type (string) – the type of organization to list (optional, default: 'organization'), See docs for IGroupForm
+
+order_by (string) – the field to sort the list by, must be 'name' or 'packages' (optional, default: 'name') Deprecated use sort.
+
+sort (string) – sorting of the search results. Optional. Default: “title asc” string of field name and sort-order. The allowed fields are ‘name’, ‘package_count’ and ‘title’
+
+limit (int) – the maximum number of organizations returned (optional) Default: 1000 when all_fields=false unless set in site’s configuration ckan.group_and_organization_list_max Default: 25 when all_fields=true unless set in site’s configuration ckan.group_and_organization_list_all_fields_max
+
+offset (int) – when limit is given, the offset to start returning organizations from
+
+organizations (list of strings) – a list of names of the organizations to return, if given only organizations whose names are in this list will be returned (optional)
+
+all_fields (bool) – return group dictionaries instead of just names. Only core fields are returned - get some more using the include_* options. Returning a list of packages is too expensive, so the packages property for each group is deprecated, but there is a count of the packages in the package_count property. (optional, default: False)
+
+include_dataset_count (bool) – if all_fields, include the full package_count (optional, default: True)
+
+include_extras (bool) – if all_fields, include the organization extra fields (optional, default: False)
+
+include_groups (bool) – if all_fields, include the groups the organizations are in (optional, default: False)
+
+include_users (bool) – if all_fields, include the organization users (optional, default: False).
+
+Return type
+:
+
+list of strings
+
+ckan.logic.action.get.group_list_authz(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of groups that the user is authorized to edit.
+
+Parameters
+:
+
+available_only (bool) – remove the existing groups in the package (optional, default: False)
+
+am_member (bool) – if True return only the groups the logged-in user is a member of, otherwise return all groups that the user is authorized to edit (for example, sysadmin users are authorized to edit all groups) (optional, default: False)
+
+Returns
+:
+
+list of dictized groups that the user is authorized to edit
+
+Return type
+:
+
+list of dicts
+
+ckan.logic.action.get.organization_list_for_user(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the organizations that the user has a given permission for.
+
+Specifically it returns the list of organizations that the currently authorized user has a given permission (for example: “manage_group”) against.
+
+By default this returns the list of organizations that the currently authorized user is member of, in any capacity.
+
+When a user becomes a member of an organization in CKAN they’re given a “capacity” (sometimes called a “role”), for example “member”, “editor” or “admin”.
+
+Each of these roles has certain permissions associated with it. For example the admin role has the “admin” permission (which means they have permission to do anything). The editor role has permissions like “create_dataset”, “update_dataset” and “delete_dataset”. The member role has the “read” permission.
+
+This function returns the list of organizations that the authorized user has a given permission for. For example the list of organizations that the user is an admin of, or the list of organizations that the user can create datasets in. This takes account of when permissions cascade down an organization hierarchy.
+
+Parameters
+:
+
+id (string) – the name or id of the user to get the organization list for (optional, defaults to the currently authorized user (logged in or via API key))
+
+permission (string) – the permission the user has against the returned organizations, for example "read" or "create_dataset" (optional, default: "manage_group")
+
+include_dataset_count (bool) – include the package_count in each org (optional, default: False)
+
+Returns
+:
+
+list of organizations that the user has the given permission for
+
+Return type
+:
+
+list of dicts
+
+ckan.logic.action.get.license_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of licenses available for datasets on the site.
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.tag_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]] | List[str]
+
+Return a list of the site’s tags.
+
+By default only free tags (tags that don’t belong to a vocabulary) are returned. If the vocabulary_id argument is given then only tags belonging to that vocabulary will be returned instead.
+
+Parameters
+:
+
+query (string) – a tag name query to search for, if given only tags whose names contain this string will be returned (optional)
+
+vocabulary_id (string) – the id or name of a vocabulary, if given only tags that belong to this vocabulary will be returned (optional)
+
+all_fields (bool) – return full tag dictionaries instead of just names (optional, default: False)
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.user_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]] | List[str] | Query
+
+Return a list of the site’s user accounts.
+
+Parameters
+:
+
+q (string) – filter the users returned to those whose names contain a string (optional)
+
+email (string) – filter the users returned to those whose email match a string (optional) (you must be a sysadmin to use this filter)
+
+order_by (string) – which field to sort the list by (optional, default: 'display_name'). Users can be sorted by 'id', 'name', 'fullname', 'display_name', 'created', 'about', 'sysadmin' or 'number_created_packages'.
+
+all_fields (bool) – return full user dictionaries instead of just names. (optional, default: True)
+
+include_site_user (bool) – add site_user to the result (optional, default: False)
+
+Return type
+:
+
+list of user dictionaries. User properties include: number_created_packages which excludes datasets which are private or draft state.
+
+ckan.logic.action.get.package_relationships_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return a dataset (package)’s relationships.
+
+Parameters
+:
+
+id (string) – the id or name of the first package
+
+id2 (string) – the id or name of the second package
+
+rel – relationship as string see package_relationship_create() for the relationship types (optional)
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.package_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Return the metadata of a dataset (package) and its resources.
+
+Parameters
+:
+
+id (string) – the id or name of the dataset
+
+use_default_schema – use default package schema instead of a custom schema defined with an IDatasetForm plugin (default: False)
+
+include_plugin_data – Include the internal plugin data object (sysadmin only, optional, default:False)
+
+Type
+:
+
+include_plugin_data: bool
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.get.resource_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Return the metadata of a resource.
+
+Parameters
+:
+
+id (string) – the id of the resource
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.get.resource_view_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Return the metadata of a resource_view.
+
+Parameters
+:
+
+id (string) – the id of the resource_view
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.get.resource_view_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of resource views for a particular resource.
+
+Parameters
+:
+
+id (string) – the id of the resource
+
+Return type
+:
+
+list of dictionaries.
+
+ckan.logic.action.get.group_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Return the details of a group.
+
+Parameters
+:
+
+id (string) – the id or name of the group
+
+include_datasets (bool) – include a truncated list of the group’s datasets (optional, default: False)
+
+include_dataset_count (bool) – include the full package_count (optional, default: True)
+
+include_extras (bool) – include the group’s extra fields (optional, default: True)
+
+include_users (bool) – include the group’s users (optional, default: True if ckan.auth.public_user_details is True otherwise False) NOTE: after CKAN 2.12 this parameter will default to False regardless of the ckan.auth.public_user_details setting
+
+include_groups (bool) – include the group’s sub groups (optional, default: True)
+
+include_followers (bool) – include the group’s number of followers (optional, default: True)
+
+Return type
+:
+
+dictionary
+
+Note
+
+Only its first 1000 datasets are returned
+
+ckan.logic.action.get.organization_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Return the details of an organization.
+
+Parameters
+:
+
+id (string) – the id or name of the organization
+
+include_datasets (bool) – include a truncated list of the org’s datasets (optional, default: False)
+
+include_dataset_count (bool) – include the full package_count (optional, default: True)
+
+include_extras (bool) – include the organization’s extra fields (optional, default: True)
+
+include_users (bool) – include the organization’s users (optional, default: True if ckan.auth.public_user_details is True otherwise False) NOTE: after CKAN 2.12 this parameter will default to False regardless of the ckan.auth.public_user_details setting
+
+include_groups (bool) – include the organization’s sub groups (optional, default: True)
+
+include_followers (bool) – include the organization’s number of followers (optional, default: True)
+
+Return type
+:
+
+dictionary
+
+Note
+
+Only its first 10 datasets are returned
+
+ckan.logic.action.get.group_package_show(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the datasets (packages) of a group.
+
+Parameters
+:
+
+id (string) – the id or name of the group
+
+limit (int) – the maximum number of datasets to return (optional)
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.tag_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Return the details of a tag and all its datasets.
+
+Parameters
+:
+
+id (string) – the name or id of the tag
+
+vocabulary_id (string) – the id or name of the tag vocabulary that the tag is in - if it is not specified it will assume it is a free tag. (optional)
+
+include_datasets (bool) – include a list of the tag’s datasets. (Up to a limit of 1000 - for more flexibility, use package_search - see package_search() for an example.) (optional, default: False)
+
+Returns
+:
+
+the details of the tag, including a list of all of the tag’s datasets and their details
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.get.user_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Return a user account.
+
+Either the id should be passed or the user should be logged in.
+
+Parameters
+:
+
+id (string) – the id or name of the user (optional)
+
+include_datasets (bool) – Include a list of datasets the user has created. If it is the same user or a sysadmin requesting, it includes datasets that are draft or private. (optional, default:False, limit:50)
+
+include_num_followers (bool) – Include the number of followers the user has (optional, default:False)
+
+include_password_hash (bool) – Include the stored password hash (sysadmin only, optional, default:False)
+
+include_plugin_extras (bool) – Include the internal plugin extras object (sysadmin only, optional, default:False)
+
+Returns
+:
+
+the details of the user. Includes email_hash and number_created_packages (which excludes draft or private datasets unless it is the same user or sysadmin making the request). Excludes the password (hash) and reset_key. If it is the same user or a sysadmin requesting, the email and apikey are included.
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.get.package_autocomplete(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return a list of datasets (packages) that match a string.
+
+Datasets with names or titles that contain the query string will be returned.
+
+Parameters
+:
+
+q (string) – the string to search for
+
+limit (int) – the maximum number of datasets to return (optional, default: 10)
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.format_autocomplete(context: Context, data_dict: dict[str, Any])→ List[str]
+
+Return a list of resource formats whose names contain a string.
+
+Parameters
+:
+
+q (string) – the string to search for
+
+limit (int) – the maximum number of resource formats to return (optional, default: 5)
+
+Return type
+:
+
+list of strings
+
+ckan.logic.action.get.user_autocomplete(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return a list of user names that contain a string.
+
+Parameters
+:
+
+q (string) – the string to search for
+
+limit (int) – the maximum number of user names to return (optional, default: 20)
+
+Return type
+:
+
+a list of user dictionaries each with keys 'name', 'fullname', and 'id'
+
+ckan.logic.action.get.group_autocomplete(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return a list of group names that contain a string.
+
+Parameters
+:
+
+q (string) – the string to search for
+
+limit (int) – the maximum number of groups to return (optional, default: 20)
+
+Return type
+:
+
+a list of group dictionaries each with keys 'name', 'title', and 'id'
+
+ckan.logic.action.get.organization_autocomplete(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return a list of organization names that contain a string.
+
+Parameters
+:
+
+q (string) – the string to search for
+
+limit (int) – the maximum number of organizations to return (optional, default: 20)
+
+Return type
+:
+
+a list of organization dictionaries each with keys 'name', 'title', and 'id'
+
+ckan.logic.action.get.package_search(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Searches for packages satisfying a given search criteria.
+
+This action accepts solr search query parameters (details below), and returns a dictionary of results, including dictized datasets that match the search criteria, a search count and also facet information.
+
+Solr Parameters:
+
+For more in depth treatment of each parameter, please read the Solr Documentation.
+
+This action accepts a subset of solr’s search query parameters:
+
+Parameters
+:
+
+q (string) – the solr query. Optional. Default: "*:*"
+
+fq (string) – any filter queries to apply. Note: +site_id:{ckan_site_id} is added to this string prior to the query being executed.
+
+fq_list (list of strings) – additional filter queries to apply.
+
+sort (string) – sorting of the search results. Optional. Default: 'score desc, metadata_modified desc'. As per the solr documentation, this is a comma-separated string of field names and sort-orderings.
+
+rows (int) – the maximum number of matching rows (datasets) to return. (optional, default: 10, upper limit: 1000 unless set in site’s configuration ckan.search.rows_max)
+
+start (int) – the offset in the complete result for where the set of returned datasets should begin.
+
+facet (string) – whether to enable faceted results. Default: True.
+
+facet.mincount (int) – the minimum counts for facet fields should be included in the results.
+
+facet.limit (int) – the maximum number of values the facet fields return. A negative value means unlimited. This can be set instance-wide with the search.facets.limit config option. Default is 50.
+
+facet.field (list of strings) – the fields to facet upon. Default empty. If empty, then the returned facet information is empty.
+
+include_drafts (bool) – if True, draft datasets will be included in the results. A user will only be returned their own draft datasets, and a sysadmin will be returned all draft datasets. Optional, the default is False.
+
+include_deleted (bool) – if True, deleted datasets will be included in the results (site configuration “ckan.search.remove_deleted_packages” must be set to False). Optional, the default is False.
+
+include_private (bool) – if True, private datasets will be included in the results. Only private datasets from the user’s organizations will be returned and sysadmins will be returned all private datasets. Optional, the default is False.
+
+use_default_schema (bool) – use default package schema instead of a custom schema defined with an IDatasetForm plugin (default: False)
+
+The following advanced Solr parameters are supported as well. Note that some of these are only available on particular Solr versions. See Solr’s dismax and edismax documentation for further details on them:
+
+qf, wt, bf, boost, tie, defType, mm
+
+Examples:
+
+q=flood datasets containing the word flood, floods or flooding fq=tags:economy datasets with the tag economy facet.field=["tags"] facet.limit=10 rows=0 top 10 tags
+
+Results:
+
+The result of this action is a dict with the following keys:
+
+Return type
+:
+
+A dictionary with the following keys
+
+Parameters
+:
+
+count (int) – the number of results found. Note, this is the total number of results found, not the total number of results returned (which is affected by limit and row parameters used in the input).
+
+results (list of dictized datasets.) – ordered list of datasets matching the query, where the ordering defined by the sort parameter used in the query.
+
+facets (DEPRECATED dict) – DEPRECATED. Aggregated information about facet counts.
+
+search_facets (nested dict of dicts.) – aggregated information about facet counts. The outer dict is keyed by the facet field name (as used in the search query). Each entry of the outer dict is itself a dict, with a “title” key, and an “items” key. The “items” key’s value is a list of dicts, each with “count”, “display_name” and “name” entries. The display_name is a form of the name that can be used in titles.
+
+An example result:
+
+{'count': 2,
+ 'results': [ { <snip> }, { <snip> }],
+ 'search_facets': {u'tags': {'items': [{'count': 1,
+                                        'display_name': u'tolstoy',
+                                        'name': u'tolstoy'},
+                                       {'count': 2,
+                                        'display_name': u'russian',
+                                        'name': u'russian'}
+                                      ]
+                            }
+                  }
+}
+
+
+Limitations:
+
+The full solr query language is not exposed, including.
+
+fl
+
+The parameter that controls which fields are returned in the solr query. fl can be None or a list of result fields, such as [‘id’, ‘extras_custom_field’]. if fl = None, datasets are returned as a list of full dictionary.
+
+ckan.logic.action.get.resource_search(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Searches for resources in public Datasets satisfying the search criteria.
+
+It returns a dictionary with 2 fields: count and results. The count field contains the total number of Resources found without the limit or query parameters having an effect. The results field is a list of dictized Resource objects.
+
+The ‘query’ parameter is a required field. It is a string of the form {field}:{term} or a list of strings, each of the same form. Within each string, {field} is a field or extra field on the Resource domain object.
+
+If {field} is "hash", then an attempt is made to match the {term} as a prefix of the Resource.hash field.
+
+If {field} is an extra field, then an attempt is made to match against the extra fields stored against the Resource.
+
+Note: The search is limited to search against extra fields declared in the config setting ckan.extra_resource_fields.
+
+Note: Due to a Resource’s extra fields being stored as a json blob, the match is made against the json string representation. As such, false positives may occur:
+
+If the search criteria is:
+
+query = "field1:term1"
+
+
+Then a json blob with the string representation of:
+
+{"field1": "foo", "field2": "term1"}
+
+
+will match the search criteria! This is a known short-coming of this approach.
+
+All matches are made ignoring case; and apart from the "hash" field, a term matches if it is a substring of the field’s value.
+
+Finally, when specifying more than one search criteria, the criteria are AND-ed together.
+
+The order parameter is used to control the ordering of the results. Currently only ordering one field is available, and in ascending order only.
+
+The context may contain a flag, search_query, which if True will make this action behave as if being used by the internal search api. ie - the results will not be dictized, and SearchErrors are thrown for bad search queries (rather than ValidationErrors).
+
+Parameters
+:
+
+query (string or list of strings of the form {field}:{term1}) – The search criteria. See above for description.
+
+order_by (string) – A field on the Resource model that orders the results.
+
+offset (int) – Apply an offset to the query.
+
+limit (int) – Apply a limit to the query.
+
+Returns
+:
+
+A dictionary with a count field, and a results field.
+
+Return type
+:
+
+dict
+
+ckan.logic.action.get.tag_search(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Return a list of tags whose names contain a given string.
+
+By default only free tags (tags that don’t belong to any vocabulary) are searched. If the vocabulary_id argument is given then only tags belonging to that vocabulary will be searched instead.
+
+Parameters
+:
+
+query (string or list of strings) – the string(s) to search for
+
+vocabulary_id (string) – the id or name of the tag vocabulary to search in (optional)
+
+fields (dictionary) – deprecated
+
+limit (int) – the maximum number of tags to return
+
+offset (int) – when limit is given, the offset to start returning tags from
+
+Returns
+:
+
+A dictionary with the following keys:
+
+'count'
+
+The number of tags in the result.
+
+'results'
+
+The list of tags whose names contain the given string, a list of dictionaries.
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.get.tag_autocomplete(context: Context, data_dict: dict[str, Any])→ List[str]
+
+Return a list of tag names that contain a given string.
+
+By default only free tags (tags that don’t belong to any vocabulary) are searched. If the vocabulary_id argument is given then only tags belonging to that vocabulary will be searched instead.
+
+Parameters
+:
+
+query (string) – the string to search for
+
+vocabulary_id (string) – the id or name of the tag vocabulary to search in (optional)
+
+fields (dictionary) – deprecated
+
+limit (int) – the maximum number of tags to return
+
+offset (int) – when limit is given, the offset to start returning tags from
+
+Return type
+:
+
+list of strings
+
+ckan.logic.action.get.task_status_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Return a task status.
+
+Either the id parameter or the entity_id, task_type and key parameters must be given.
+
+Parameters
+:
+
+id (string) – the id of the task status (optional)
+
+entity_id (string) – the entity_id of the task status (optional)
+
+task_type (string) – the task_type of the task status (optional)
+
+key (string) – the key of the task status (optional)
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.get.term_translation_show(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the translations for the given term(s) and language(s).
+
+Parameters
+:
+
+terms (list of strings) – the terms to search for translations of, e.g. 'Russian', 'romantic novel'
+
+lang_codes (list of language code strings) – the language codes of the languages to search for translations into, e.g. 'en', 'de' (optional, default is to search for translations into any language)
+
+Return type
+:
+
+a list of term translation dictionaries each with keys 'term' (the term searched for, in the source language), 'term_translation' (the translation of the term into the target language) and 'lang_code' (the language code of the target language)
+
+ckan.logic.action.get.get_site_user(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Return the ckan site user
+
+Parameters
+:
+
+defer_commit (bool) – by default (or if set to false) get_site_user will commit and clean up the current transaction. If set to true, caller is responsible for committing transaction after get_site_user is called. Leaving open connections can cause cli commands to hang! (optional, default: False)
+
+ckan.logic.action.get.status_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Return a dictionary with information about the site’s configuration.
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.get.vocabulary_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return a list of all the site’s tag vocabularies.
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.vocabulary_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Return a single tag vocabulary.
+
+Parameters
+:
+
+id (string) – the id or name of the vocabulary
+
+Returns
+:
+
+the vocabulary.
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.get.user_follower_count(context: Context, data_dict: dict[str, Any])→ int
+
+Return the number of followers of a user.
+
+Parameters
+:
+
+id (string) – the id or name of the user
+
+Return type
+:
+
+int
+
+ckan.logic.action.get.dataset_follower_count(context: Context, data_dict: dict[str, Any])→ int
+
+Return the number of followers of a dataset.
+
+Parameters
+:
+
+id (string) – the id or name of the dataset
+
+Return type
+:
+
+int
+
+ckan.logic.action.get.group_follower_count(context: Context, data_dict: dict[str, Any])→ int
+
+Return the number of followers of a group.
+
+Parameters
+:
+
+id (string) – the id or name of the group
+
+Return type
+:
+
+int
+
+ckan.logic.action.get.organization_follower_count(context: Context, data_dict: dict[str, Any])→ int
+
+Return the number of followers of an organization.
+
+Parameters
+:
+
+id (string) – the id or name of the organization
+
+Return type
+:
+
+int
+
+ckan.logic.action.get.user_follower_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of users that are following the given user.
+
+Parameters
+:
+
+id (string) – the id or name of the user
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.dataset_follower_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of users that are following the given dataset.
+
+Parameters
+:
+
+id (string) – the id or name of the dataset
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.group_follower_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of users that are following the given group.
+
+Parameters
+:
+
+id (string) – the id or name of the group
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.organization_follower_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of users that are following the given organization.
+
+Parameters
+:
+
+id (string) – the id or name of the organization
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.am_following_user(context: Context, data_dict: dict[str, Any])→ bool
+
+Return True if you’re following the given user, False if not.
+
+Parameters
+:
+
+id (string) – the id or name of the user
+
+Return type
+:
+
+bool
+
+ckan.logic.action.get.am_following_dataset(context: Context, data_dict: dict[str, Any])→ bool
+
+Return True if you’re following the given dataset, False if not.
+
+Parameters
+:
+
+id (string) – the id or name of the dataset
+
+Return type
+:
+
+bool
+
+ckan.logic.action.get.am_following_group(context: Context, data_dict: dict[str, Any])→ bool
+
+Return True if you’re following the given group, False if not.
+
+Parameters
+:
+
+id (string) – the id or name of the group
+
+Return type
+:
+
+bool
+
+ckan.logic.action.get.followee_count(context: Context, data_dict: dict[str, Any])→ int
+
+Return the number of objects that are followed by the given user.
+
+Counts all objects, of any type, that the given user is following (e.g. followed users, followed datasets, followed groups).
+
+Parameters
+:
+
+id (string) – the id of the user
+
+Return type
+:
+
+int
+
+ckan.logic.action.get.user_followee_count(context: Context, data_dict: dict[str, Any])→ int
+
+Return the number of users that are followed by the given user.
+
+Parameters
+:
+
+id (string) – the id of the user
+
+Return type
+:
+
+int
+
+ckan.logic.action.get.dataset_followee_count(context: Context, data_dict: dict[str, Any])→ int
+
+Return the number of datasets that are followed by the given user.
+
+Parameters
+:
+
+id (string) – the id of the user
+
+Return type
+:
+
+int
+
+ckan.logic.action.get.group_followee_count(context: Context, data_dict: dict[str, Any])→ int
+
+Return the number of groups that are followed by the given user.
+
+Parameters
+:
+
+id (string) – the id of the user
+
+Return type
+:
+
+int
+
+ckan.logic.action.get.organization_followee_count(context: Context, data_dict: dict[str, Any])→ int
+
+Return the number of organizations that are followed by the given user.
+
+Parameters
+:
+
+id (string) – the id of the user
+
+Return type
+:
+
+int
+
+ckan.logic.action.get.followee_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of objects that are followed by the given user.
+
+Returns all objects, of any type, that the given user is following (e.g. followed users, followed datasets, followed groups.. ).
+
+Parameters
+:
+
+id (string) – the id of the user
+
+q (string) – a query string to limit results by, only objects whose display name begins with the given string (case-insensitive) will be returned (optional)
+
+Return type
+:
+
+list of dictionaries, each with keys 'type' (e.g. 'user', 'dataset' or 'group'), 'display_name' (e.g. a user’s display name, or a package’s title) and 'dict' (e.g. a dict representing the followed user, package or group, the same as the dict that would be returned by user_show(), package_show() or group_show())
+
+ckan.logic.action.get.user_followee_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of users that are followed by the given user.
+
+Parameters
+:
+
+id (string) – the id of the user
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.dataset_followee_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of datasets that are followed by the given user.
+
+Parameters
+:
+
+id (string) – the id or name of the user
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.group_followee_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of groups that are followed by the given user.
+
+Parameters
+:
+
+id (string) – the id or name of the user
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.organization_followee_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the list of organizations that are followed by the given user.
+
+Parameters
+:
+
+id (string) – the id or name of the user
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.member_roles_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return the possible roles for members of groups and organizations.
+
+Parameters
+:
+
+group_type (string) – the group type, either "group" or "organization" (optional, default "organization")
+
+Returns
+:
+
+a list of dictionaries each with two keys: "text" (the display name of the role, e.g. "Admin") and "value" (the internal name of the role, e.g. "admin")
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.get.help_show(context: Context, data_dict: dict[str, Any])→ str | None
+
+Return the help string for a particular API action.
+
+Parameters
+:
+
+name (string) – Action function name (eg user_create, package_search)
+
+Returns
+:
+
+The help string for the action function, or None if the function does not have a docstring.
+
+Return type
+:
+
+string
+
+Raises
+:
+
+ckan.logic.NotFound: if the action function doesn’t exist
+
+ckan.logic.action.get.config_option_show(context: Context, data_dict: dict[str, Any])→ Any
+
+Show the current value of a particular configuration option.
+
+Only returns runtime-editable config options (the ones returned by config_option_list()), which can be updated with the config_option_update() action.
+
+Parameters
+:
+
+key (string) – The configuration option key
+
+Returns
+:
+
+The value of the config option from either the system_info table or ini file.
+
+Return type
+:
+
+string
+
+Raises
+:
+
+ckan.logic.ValidationError: if config option is not in the schema (whitelisted as editable).
+
+ckan.logic.action.get.config_option_list(context: Context, data_dict: dict[str, Any])→ List[str]
+Return a list of runtime-editable config options keys that can be
+
+updated with config_option_update().
+
+Returns
+:
+
+A list of config option keys.
+
+Return type
+:
+
+list
+
+ckan.logic.action.get.job_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]] | List[str]
+
+List enqueued background jobs.
+
+Parameters
+:
+
+queues (list) – Queues to list jobs from. If not given then the jobs from all queues are listed.
+
+limit (int) – Number to limit the list of jobs by.
+
+ids_only (bool) – Whether to return only a list if job IDs or not.
+
+Returns
+:
+
+The currently enqueued background jobs.
+
+Return type
+:
+
+list
+
+Will return the list in the way that RQ workers will execute the jobs. Thus the left most non-empty queue will be emptied first before the next right non-empty one.
+
+Added in version 2.7.
+
+ckan.logic.action.get.job_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Show details for a background job.
+
+Parameters
+:
+
+id (string) – The ID of the background job.
+
+Returns
+:
+
+Details about the background job.
+
+Return type
+:
+
+dict
+
+Added in version 2.7.
+
+ckan.logic.action.get.api_token_list(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Return list of all available API Tokens for current user.
+
+Parameters
+:
+
+user_id (string) – The user ID or name
+
+Returns
+:
+
+collection of all API Tokens from oldest to newest
+
+Return type
+:
+
+list
+
+Added in version 2.9.
+
+ckan.logic.action.create
+
+API functions for adding data to CKAN.
+
+ckan.logic.action.create.package_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any] | str
+
+Create a new dataset (package).
+
+You must be authorized to create new datasets. If you specify any groups for the new dataset, you must also be authorized to edit these groups.
+
+Plugins may change the parameters of this function depending on the value of the type parameter, see the IDatasetForm plugin interface.
+
+Parameters
+:
+
+name (string) – the name of the new dataset, must be between 2 and 100 characters long and contain only lowercase alphanumeric characters, - and _, e.g. 'warandpeace'
+
+title (string) – the title of the dataset (optional, default: same as name)
+
+private (bool) – If True creates a private dataset
+
+author (string) – the name of the dataset’s author (optional)
+
+author_email (string) – the email address of the dataset’s author (optional)
+
+maintainer (string) – the name of the dataset’s maintainer (optional)
+
+maintainer_email (string) – the email address of the dataset’s maintainer (optional)
+
+license_id (license id string) – the id of the dataset’s license, see license_list() for available values (optional)
+
+notes (string) – a description of the dataset (optional)
+
+url (string) – a URL for the dataset’s source (optional)
+
+version (string, no longer than 100 characters) – (optional)
+
+state (string) – the current state of the dataset, e.g. 'active' or 'deleted', only active datasets show up in search results and other lists of datasets, this parameter will be ignored if you are not authorized to change the state of the dataset (optional, default: 'active')
+
+type (string) – the type of the dataset (optional), IDatasetForm plugins associate themselves with different dataset types and provide custom dataset handling behaviour for these types
+
+resources (list of resource dictionaries) – the dataset’s resources, see resource_create() for the format of resource dictionaries (optional)
+
+tags (list of tag dictionaries) – the dataset’s tags, see tag_create() for the format of tag dictionaries (optional)
+
+extras (list of dataset extra dictionaries) – the dataset’s extras (optional), extras are arbitrary (key: value) metadata items that can be added to datasets, each extra dictionary should have keys 'key' (a string), 'value' (a string)
+
+plugin_data (dict) –
+
+private package data belonging to plugins. Only sysadmin users may set this value. It should be a dict that can be dumped into JSON, and plugins should namespace their data with the plugin name to avoid collisions with other plugins, eg:
+
+{
+    "name": "test-dataset",
+    "plugin_data": {
+        "plugin1": {"key1": "value1"},
+        "plugin2": {"key2": "value2"}
+    }
+}
+
+
+relationships_as_object (list of relationship dictionaries) – see package_relationship_create() for the format of relationship dictionaries (optional)
+
+relationships_as_subject (list of relationship dictionaries) – see package_relationship_create() for the format of relationship dictionaries (optional)
+
+groups (list of dictionaries) – the groups to which the dataset belongs (optional), each group dictionary should have one or more of the following keys which identify an existing group: 'id' (the id of the group, string), or 'name' (the name of the group, string), to see which groups exist call group_list()
+
+owner_org (string) – the id of the dataset’s owning organization, see organization_list() or organization_list_for_user() for available values. This parameter can be made optional if the config option ckan.auth.create_unowned_dataset is set to True.
+
+Returns
+:
+
+the newly created dataset (unless ‘return_id_only’ is set to True in the context, in which case just the dataset id will be returned)
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.resource_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Appends a new resource to a datasets list of resources.
+
+Parameters
+:
+
+package_id (string) – id of package that the resource should be added to.
+
+url (string) – url of resource
+
+description (string) – (optional)
+
+format (string) – (optional)
+
+hash (string) – (optional)
+
+name (string) – (optional)
+
+resource_type (string) – (optional)
+
+mimetype (string) – (optional)
+
+mimetype_inner (string) – (optional)
+
+cache_url (string) – (optional)
+
+size (int) – (optional)
+
+created (iso date string) – (optional)
+
+last_modified (iso date string) – (optional)
+
+cache_last_updated (iso date string) – (optional)
+
+upload (FieldStorage (optional) needs multipart/form-data) – (optional)
+
+Returns
+:
+
+the newly created resource
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.resource_view_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Creates a new resource view.
+
+Parameters
+:
+
+resource_id (string) – id of the resource
+
+title (string) – the title of the view
+
+description (string) – a description of the view (optional)
+
+view_type (string) – type of view
+
+config (JSON string) – options necessary to recreate a view state (optional)
+
+Returns
+:
+
+the newly created resource view
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.resource_create_default_resource_views(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Creates the default views (if necessary) on the provided resource
+
+The function will get the plugins for the default views defined in the configuration, and if some were found the can_view method of each one of them will be called to determine if a resource view should be created. Resource views extensions get the resource dict and the parent dataset dict.
+
+If the latter is not provided, package_show is called to get it.
+
+By default only view plugins that don’t require the resource data to be in the DataStore are called. See ckan.logic.action.create.package_create_default_resource_views.`() for details on the create_datastore_views parameter.
+
+Parameters
+:
+
+resource (dict) – full resource dict
+
+package (dict) – full dataset dict (optional, if not provided package_show() will be called).
+
+create_datastore_views (bool) – whether to create views that rely on data being on the DataStore (optional, defaults to False)
+
+Returns
+:
+
+a list of resource views created (empty if none were created)
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.create.package_create_default_resource_views(context: Context, data_dict: dict[str, Any])→ List[dict[str, Any]]
+
+Creates the default views on all resources of the provided dataset
+
+By default only view plugins that don’t require the resource data to be in the DataStore are called. Passing create_datastore_views as True will only create views that require data to be in the DataStore. The first case happens when the function is called from package_create or package_update, the second when it’s called from the DataPusher when data was uploaded to the DataStore.
+
+Parameters
+:
+
+package (dict) – full dataset dict (ie the one obtained calling package_show()).
+
+create_datastore_views (bool) – whether to create views that rely on data being on the DataStore (optional, defaults to False)
+
+Returns
+:
+
+a list of resource views created (empty if none were created)
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.create.package_relationship_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Create a relationship between two datasets (packages).
+
+You must be authorized to edit both the subject and the object datasets.
+
+Parameters
+:
+
+subject (string) – the id or name of the dataset that is the subject of the relationship
+
+object – the id or name of the dataset that is the object of the relationship
+
+type (string) – the type of the relationship, one of 'depends_on', 'dependency_of', 'derives_from', 'has_derivation', 'links_to', 'linked_from', 'child_of' or 'parent_of'
+
+comment (string) – a comment about the relationship (optional)
+
+Returns
+:
+
+the newly created package relationship
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.member_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Make an object (e.g. a user, dataset or group) a member of a group.
+
+If the object is already a member of the group then the capacity of the membership will be updated.
+
+You must be authorized to edit the group.
+
+Parameters
+:
+
+id (string) – the id or name of the group to add the object to
+
+object (string) – the id or name of the object to add
+
+object_type (string) – the type of the object being added, e.g. 'package' or 'user'
+
+capacity (string) – the capacity of the membership
+
+Returns
+:
+
+the newly created (or updated) membership
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.package_collaborator_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Make a user a collaborator in a dataset.
+
+If the user is already a collaborator in the dataset then their capacity will be updated.
+
+Currently you must be an Admin on the dataset owner organization to manage collaborators.
+
+Note: This action requires the collaborators feature to be enabled with the ckan.auth.allow_dataset_collaborators configuration option.
+
+Parameters
+:
+
+id (string) – the id or name of the dataset
+
+user_id (string) – the id or name of the user to add or edit
+
+capacity (string) – the capacity or role of the membership. Must be one of “editor” or “member”. Additionally if ckan.auth.allow_admin_collaborators is set to True, “admin” is also allowed.
+
+Returns
+:
+
+the newly created (or updated) collaborator
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.group_create(context: Context, data_dict: dict[str, Any])→ str | dict[str, Any]
+
+Create a new group.
+
+You must be authorized to create groups.
+
+Plugins may change the parameters of this function depending on the value of the type parameter, see the IGroupForm plugin interface.
+
+Parameters
+:
+
+name (string) – the name of the group, a string between 2 and 100 characters long, containing only lowercase alphanumeric characters, - and _
+
+id (string) – the id of the group (optional)
+
+title (string) – the title of the group (optional)
+
+description (string) – the description of the group (optional)
+
+image_url (string) – the URL to an image to be displayed on the group’s page (optional)
+
+type (string) – the type of the group (optional, default: 'group'), IGroupForm plugins associate themselves with different group types and provide custom group handling behaviour for these types Cannot be ‘organization’
+
+state (string) – the current state of the group, e.g. 'active' or 'deleted', only active groups show up in search results and other lists of groups, this parameter will be ignored if you are not authorized to change the state of the group (optional, default: 'active')
+
+approval_status (string) – (optional)
+
+extras (list of dataset extra dictionaries) – the group’s extras (optional), extras are arbitrary (key: value) metadata items that can be added to groups, each extra dictionary should have keys 'key' (a string), 'value' (a string), and optionally 'deleted'
+
+packages (list of dictionaries) – the datasets (packages) that belong to the group, a list of dictionaries each with keys 'name' (string, the id or name of the dataset) and optionally 'title' (string, the title of the dataset)
+
+groups (list of dictionaries) – the groups that belong to the group, a list of dictionaries each with key 'name' (string, the id or name of the group) and optionally 'capacity' (string, the capacity in which the group is a member of the group)
+
+users (list of dictionaries) – the users that belong to the group, a list of dictionaries each with key 'name' (string, the id or name of the user) and optionally 'capacity' (string, the capacity in which the user is a member of the group)
+
+Returns
+:
+
+the newly created group (unless ‘return_id_only’ is set to True in the context, in which case just the group id will be returned)
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.organization_create(context: Context, data_dict: dict[str, Any])→ str | dict[str, Any]
+
+Create a new organization.
+
+You must be authorized to create organizations.
+
+Plugins may change the parameters of this function depending on the value of the type parameter, see the IGroupForm plugin interface.
+
+Parameters
+:
+
+name (string) – the name of the organization, a string between 2 and 100 characters long, containing only lowercase alphanumeric characters, - and _
+
+id (string) – the id of the organization (optional)
+
+title (string) – the title of the organization (optional)
+
+description (string) – the description of the organization (optional)
+
+image_url (string) – the URL to an image to be displayed on the organization’s page (optional)
+
+state (string) – the current state of the organization, e.g. 'active' or 'deleted', only active organizations show up in search results and other lists of organizations, this parameter will be ignored if you are not authorized to change the state of the organization (optional, default: 'active')
+
+approval_status (string) – (optional)
+
+extras (list of dataset extra dictionaries) – the organization’s extras (optional), extras are arbitrary (key: value) metadata items that can be added to organizations, each extra dictionary should have keys 'key' (a string), 'value' (a string), and optionally 'deleted'
+
+packages (list of dictionaries) – the datasets (packages) that belong to the organization, a list of dictionaries each with keys 'name' (string, the id or name of the dataset) and optionally 'title' (string, the title of the dataset)
+
+users (list of dictionaries) – the users that belong to the organization, a list of dictionaries each with key 'name' (string, the id or name of the user) and optionally 'capacity' (string, the capacity in which the user is a member of the organization)
+
+Returns
+:
+
+the newly created organization (unless ‘return_id_only’ is set to True in the context, in which case just the organization id will be returned)
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.user_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Create a new user.
+
+You must be authorized to create users.
+
+Parameters
+:
+
+name (string) – the name of the new user, a string between 2 and 100 characters in length, containing only lowercase alphanumeric characters, - and _
+
+email (string) – the email address for the new user
+
+password (string) – the password of the new user, a string of at least 4 characters
+
+id (string) – the id of the new user (optional)
+
+fullname (string) – the full name of the new user (optional)
+
+about (string) – a description of the new user (optional)
+
+image_url (string) – the URL to an image to be displayed on the user’s page (optional)
+
+plugin_extras (dict) –
+
+private extra user data belonging to plugins. Only sysadmin users may set this value. It should be a dict that can be dumped into JSON, and plugins should namespace their extras with the plugin name to avoid collisions with other plugins, eg:
+
+{
+    "name": "test_user",
+    "email": "test@example.com",
+    "plugin_extras": {
+        "my_plugin": {
+            "private_extra": 1
+        },
+        "another_plugin": {
+            "another_extra": True
+        }
+    }
+}
+
+
+with_apitoken (bool) – whether to create an API token for the user. (Optional)
+
+Returns
+:
+
+the newly created user
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.user_invite(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Invite a new user.
+
+You must be authorized to create group members.
+
+Parameters
+:
+
+email (string) – the email of the user to be invited to the group
+
+group_id (string) – the id or name of the group
+
+role (string) – role of the user in the group. One of member, editor, or admin
+
+Returns
+:
+
+the newly created user
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.vocabulary_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Create a new tag vocabulary.
+
+You must be a sysadmin to create vocabularies.
+
+Parameters
+:
+
+name (string) – the name of the new vocabulary, e.g. 'Genre'
+
+tags (list of tag dictionaries) – the new tags to add to the new vocabulary, for the format of tag dictionaries see tag_create()
+
+Returns
+:
+
+the newly-created vocabulary
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.tag_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Create a new vocabulary tag.
+
+You must be a sysadmin to create vocabulary tags.
+
+You can only use this function to create tags that belong to a vocabulary, not to create free tags. (To create a new free tag simply add the tag to a package, e.g. using the package_update() function.)
+
+Parameters
+:
+
+name (string) – the name for the new tag, a string between 2 and 100 characters long containing only alphanumeric characters, spaces and the characters -, _ and ., e.g. 'Jazz'
+
+vocabulary_id (string) – the id of the vocabulary that the new tag should be added to, e.g. the id of vocabulary 'Genre'
+
+Returns
+:
+
+the newly-created tag
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.follow_user(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Start following another user.
+
+You must provide your API key in the Authorization header.
+
+Parameters
+:
+
+id (string) – the id or name of the user to follow, e.g. 'joeuser'
+
+Returns
+:
+
+a representation of the ‘follower’ relationship between yourself and the other user
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.follow_dataset(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Start following a dataset.
+
+You must provide your API key in the Authorization header.
+
+Parameters
+:
+
+id (string) – the id or name of the dataset to follow, e.g. 'warandpeace'
+
+Returns
+:
+
+a representation of the ‘follower’ relationship between yourself and the dataset
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.group_member_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Make a user a member of a group.
+
+You must be authorized to edit the group.
+
+Parameters
+:
+
+id (string) – the id or name of the group
+
+username (string) – name or id of the user to be made member of the group
+
+role (string) – role of the user in the group. One of member, editor, or admin
+
+Returns
+:
+
+the newly created (or updated) membership
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.organization_member_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Make a user a member of an organization.
+
+You must be authorized to edit the organization.
+
+Parameters
+:
+
+id (string) – the id or name of the organization
+
+username (string) – name or id of the user to be made member of the organization
+
+role (string) – role of the user in the organization. One of member, editor, or admin
+
+Returns
+:
+
+the newly created (or updated) membership
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.follow_group(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Start following a group.
+
+You must provide your API key in the Authorization header.
+
+Parameters
+:
+
+id (string) – the id or name of the group to follow, e.g. 'roger'
+
+Returns
+:
+
+a representation of the ‘follower’ relationship between yourself and the group
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.create.api_token_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Create new API Token for current user.
+
+Apart from the user and name field that are required by default implementation, there may be additional fields registered by extensions.
+
+Parameters
+:
+
+user (string) – name or id of the user who owns new API Token
+
+name (string) – distinctive name for API Token
+
+created_at (timestamp) – datetime string for when the API Token was made. Only sysadmin users may set this value, used for data migrations.
+
+id (string) – UUID of the API Token (a.k.a the encoded token). Only sysadmin users may set this value, used for data migrations.
+
+last_access (timestamp) – datetime string for when the API Token was last used. Only sysadmin users may set this value, used for data migrations.
+
+Returns
+:
+
+Returns a dict with the key “token” containing the encoded token value. Extensions can provide additional fields via add_extra method of IApiToken
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.update
+
+API functions for updating existing data in CKAN.
+
+ckan.logic.action.update.resource_update(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Update a resource.
+
+To update a resource you must be authorized to update the dataset that the resource belongs to.
+
+Note
+
+Update methods may delete parameters not explicitly provided in the data_dict. If you want to edit only a specific attribute use resource_patch instead.
+
+For further parameters see resource_create().
+
+Parameters
+:
+
+id (string) – the id of the resource to update
+
+Returns
+:
+
+the updated resource
+
+Return type
+:
+
+string
+
+ckan.logic.action.update.resource_view_update(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Update a resource view.
+
+To update a resource_view you must be authorized to update the resource that the resource_view belongs to.
+
+For further parameters see resource_view_create().
+
+Parameters
+:
+
+id (string) – the id of the resource_view to update
+
+Returns
+:
+
+the updated resource_view
+
+Return type
+:
+
+string
+
+ckan.logic.action.update.resource_view_reorder(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Reorder resource views.
+
+Parameters
+:
+
+id (string) – the id of the resource
+
+order (list of strings) – the list of id of the resource to update the order of the views
+
+Returns
+:
+
+the updated order of the view
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.update.package_update(context: Context, data_dict: dict[str, Any])→ str | dict[str, Any]
+
+Update a dataset (package).
+
+You must be authorized to edit the dataset and the groups that it belongs to.
+
+Note
+
+Update methods may delete parameters not explicitly provided. If you want to edit only a specific attribute use ckan.logic.action.get.package_patch() instead.
+
+If the resources list is omitted the current resources will be left unchanged.
+
+Plugins may change the parameters of this function depending on the value of the dataset’s type attribute, see the IDatasetForm plugin interface.
+
+For further parameters see package_create().
+
+Parameters
+:
+
+id (string) – the name or id of the dataset to update
+
+Returns
+:
+
+the updated dataset (if 'return_id_only' is False in the context, which is the default. Otherwise returns just the dataset id)
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.update.package_revise(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Revise a dataset (package) selectively with match, filter and update parameters.
+
+You must be authorized to edit the dataset and the groups that it belongs to.
+
+Parameters
+:
+
+match (dict) – a dict containing “id” or “name” values of the dataset to update, all values provided must match the current dataset values or a ValidationError will be raised. e.g. {"name": "my-data", "resources": {["name": "big.csv"]}} would abort if the my-data dataset’s first resource name is not “big.csv”.
+
+filter (comma-separated string patterns or list of string patterns) – a list of string patterns of fields to remove from the current dataset. e.g. "-resources__1" would remove the second resource, "+title, +resources, -*" would remove all fields at the dataset level except title and all resources (default: [])
+
+update (dict) – a dict with values to update/create after filtering e.g. {"resources": [{"description": "file here"}]} would update the description for the first resource
+
+include (comma-separated-string patterns or list of string patterns) – a list of string pattern of fields to include in response e.g. "-*" to return nothing (default: [] all fields returned)
+
+match and update parameters may also be passed as “flattened keys”, using either the item numeric index or its unique id (with a minimum of 5 characters), e.g. update__resources__1f9ab__description="guidebook" would set the description of the resource with id starting with “1f9ab” to “guidebook”, and update__resources__-1__description="guidebook" would do the same on the last resource in the dataset.
+
+The extend suffix can also be used on the update parameter to add a new item to a list, e.g. update__resources__extend=[{"name": "new resource", "url": "https://example.com"}] will add a new resource to the dataset with the provided name and url.
+
+Usage examples:
+
+Change description in dataset, checking for old description:
+
+match={"notes": "old notes", "name": "xyz"}
+update={"notes": "new notes"}
+
+
+Identical to above, but using flattened keys:
+
+match__name="xyz"
+match__notes="old notes"
+update__notes="new notes"
+
+
+Replace all fields at dataset level only, keep resources (note: dataset id and type fields can’t be deleted)
+
+match={"id": "1234abc-1420-cbad-1922"}
+filter=["+resources", "-*"]
+update={"name": "fresh-start", "title": "Fresh Start"}
+
+
+Add a new resource (__extend on flattened key):
+
+match={"id": "abc0123-1420-cbad-1922"}
+update__resources__extend=[{"name": "new resource", "url": "http://example.com"}]
+
+
+Update a resource by its index:
+
+match={"name": "my-data"}
+update__resources__0={"name": "new name, first resource"}
+
+
+Update a resource by its id (provide at least 5 characters):
+
+match={"name": "their-data"}
+update__resources__19cfad={"description": "right one for sure"}
+
+
+Replace all fields of a resource:
+
+match={"id": "34a12bc-1420-cbad-1922"}
+filter=["+resources__1492a__id", "-resources__1492a__*"]
+update__resources__1492a={"name": "edits here", "url": "http://example.com"}
+
+Returns
+:
+
+a dict containing ‘package’:the updated dataset with fields filtered by include parameter
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.update.package_resource_reorder(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Reorder resources against datasets. If only partial resource ids are supplied then these are assumed to be first and the other resources will stay in their original order
+
+Parameters
+:
+
+id (string) – the id or name of the package to update
+
+order (list) – a list of resource ids in the order needed
+
+ckan.logic.action.update.package_relationship_update(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Update a relationship between two datasets (packages).
+
+The subject, object and type parameters are required to identify the relationship. Only the comment can be updated.
+
+You must be authorized to edit both the subject and the object datasets.
+
+Parameters
+:
+
+subject (string) – the name or id of the dataset that is the subject of the relationship
+
+object (string) – the name or id of the dataset that is the object of the relationship
+
+type (string) – the type of the relationship, one of 'depends_on', 'dependency_of', 'derives_from', 'has_derivation', 'links_to', 'linked_from', 'child_of' or 'parent_of'
+
+comment (string) – a comment about the relationship (optional)
+
+Returns
+:
+
+the updated relationship
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.update.group_update(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Update a group.
+
+You must be authorized to edit the group.
+
+Note
+
+Update methods may delete parameters not explicitly provided in the data_dict. If you want to edit only a specific attribute use group_patch instead.
+
+Plugins may change the parameters of this function depending on the value of the group’s type attribute, see the IGroupForm plugin interface.
+
+For further parameters see group_create().
+
+Callers can choose to not specify packages, users or groups and they will be left at their existing values.
+
+Parameters
+:
+
+id (string) – the name or id of the group to update
+
+Returns
+:
+
+the updated group
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.update.organization_update(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Update an organization.
+
+You must be authorized to edit the organization.
+
+Note
+
+Update methods may delete parameters not explicitly provided in the data_dict. If you want to edit only a specific attribute use organization_patch instead.
+
+For further parameters see organization_create().
+
+Callers can choose to not specify packages, users or groups and they will be left at their existing values.
+
+Parameters
+:
+
+id (string) – the name or id of the organization to update
+
+packages – ignored. use package_owner_org_update() to change package ownership
+
+Returns
+:
+
+the updated organization
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.update.user_update(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Update a user account.
+
+Normal users can only update their own user accounts. Sysadmins can update any user account and modify existing usernames.
+
+Note
+
+Update methods may delete parameters not explicitly provided in the data_dict. If you want to edit only a specific attribute use user_patch instead.
+
+For further parameters see user_create().
+
+Parameters
+:
+
+id (string) – the name or id of the user to update
+
+Returns
+:
+
+the updated user account
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.update.task_status_update(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Update a task status.
+
+Parameters
+:
+
+id (string) – the id of the task status to update
+
+entity_id (string)
+
+entity_type (string)
+
+task_type (string)
+
+key (string)
+
+value – (optional)
+
+state – (optional)
+
+last_updated – (optional)
+
+error – (optional)
+
+Returns
+:
+
+the updated task status
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.update.task_status_update_many(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Update many task statuses at once.
+
+Parameters
+:
+
+data (list of dictionaries) – the task_status dictionaries to update, for the format of task status dictionaries see task_status_update()
+
+Returns
+:
+
+the updated task statuses
+
+Return type
+:
+
+list of dictionaries
+
+ckan.logic.action.update.term_translation_update(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Create or update a term translation.
+
+You must be a sysadmin to create or update term translations.
+
+Parameters
+:
+
+term (string) – the term to be translated, in the original language, e.g. 'romantic novel'
+
+term_translation (string) – the translation of the term, e.g. 'Liebesroman'
+
+lang_code (string) – the language code of the translation, e.g. 'de'
+
+Returns
+:
+
+the newly created or updated term translation
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.update.term_translation_update_many(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Create or update many term translations at once.
+
+Parameters
+:
+
+data (list of dictionaries) – the term translation dictionaries to create or update, for the format of term translation dictionaries see term_translation_update()
+
+Returns
+:
+
+a dictionary with key 'success' whose value is a string stating how many term translations were updated
+
+Return type
+:
+
+string
+
+ckan.logic.action.update.vocabulary_update(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Update a tag vocabulary.
+
+You must be a sysadmin to update vocabularies.
+
+For further parameters see vocabulary_create().
+
+Parameters
+:
+
+id (string) – the id of the vocabulary to update
+
+Returns
+:
+
+the updated vocabulary
+
+Return type
+:
+
+dictionary
+
+ckan.logic.action.update.package_owner_org_update(context: Context, data_dict: dict[str, Any])→ None
+
+Update the owning organization of a dataset
+
+Parameters
+:
+
+id (string) – the name or id of the dataset to update
+
+organization_id (string) – the name or id of the owning organization
+
+ckan.logic.action.update.bulk_update_private(context: Context, data_dict: dict[str, Any])→ None
+
+Make a list of datasets private
+
+Parameters
+:
+
+datasets (list of strings) – list of ids of the datasets to update
+
+org_id (string) – id of the owning organization
+
+ckan.logic.action.update.bulk_update_public(context: Context, data_dict: dict[str, Any])→ None
+
+Make a list of datasets public
+
+Parameters
+:
+
+datasets (list of strings) – list of ids of the datasets to update
+
+org_id (string) – id of the owning organization
+
+ckan.logic.action.update.bulk_update_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Make a list of datasets deleted
+
+Parameters
+:
+
+datasets (list of strings) – list of ids of the datasets to update
+
+org_id (string) – id of the owning organization
+
+ckan.logic.action.update.config_option_update(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Added in version 2.4.
+
+Allows to modify some CKAN runtime-editable config options
+
+It takes arbitrary key, value pairs and checks the keys against the config options update schema. If some of the provided keys are not present in the schema a ValidationError is raised. The values are then validated against the schema, and if validation is passed, for each key, value config option:
+
+It is stored on the system_info database table
+
+The Pylons config object is updated.
+
+The app_globals (g) object is updated (this only happens for options explicitly defined in the app_globals module.
+
+The following lists a key parameter, but this should be replaced by whichever config options want to be updated, eg:
+
+get_action('config_option_update)({}, {
+    'ckan.site_title': 'My Open Data site',
+})
+
+Parameters
+:
+
+key (string) – a configuration option key (eg ckan.site_title). It must be present on the update_configuration_schema
+
+Returns
+:
+
+a dictionary with the options set
+
+Return type
+:
+
+dictionary
+
+Note
+
+You can see all available runtime-editable configuration options calling the config_option_list() action
+
+Note
+
+Extensions can modify which configuration options are runtime-editable. For details, check Making configuration options runtime-editable.
+
+Warning
+
+You should only add config options that you are comfortable they can be edited during runtime, such as ones you’ve added in your own extension, or have reviewed the use of in core CKAN.
+
+ckan.logic.action.patch
+
+Added in version 2.3.
+
+API functions for partial updates of existing data in CKAN
+
+ckan.logic.action.patch.package_patch(context: Context, data_dict: dict[str, Any])→ str | dict[str, Any]
+
+Patch a dataset (package).
+
+Parameters
+:
+
+id (string) – the id or name of the dataset
+
+The difference between the update and patch methods is that the patch will perform an update of the provided parameters, while leaving all other parameters unchanged, whereas the update methods deletes all parameters not explicitly provided in the data_dict.
+
+To partially update resources or other metadata not at the top level of a package use package_revise() instead to maintain existing nested values.
+
+You must be authorized to edit the dataset and the groups that it belongs to.
+
+ckan.logic.action.patch.resource_patch(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Patch a resource
+
+Parameters
+:
+
+id (string) – the id of the resource
+
+The difference between the update and patch methods is that the patch will perform an update of the provided parameters, while leaving all other parameters unchanged, whereas the update methods deletes all parameters not explicitly provided in the data_dict
+
+ckan.logic.action.patch.group_patch(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Patch a group
+
+Parameters
+:
+
+id (string) – the id or name of the group
+
+The difference between the update and patch methods is that the patch will perform an update of the provided parameters, while leaving all other parameters unchanged, whereas the update methods deletes all parameters not explicitly provided in the data_dict
+
+ckan.logic.action.patch.organization_patch(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Patch an organization
+
+Parameters
+:
+
+id (string) – the id or name of the organization
+
+The difference between the update and patch methods is that the patch will perform an update of the provided parameters, while leaving all other parameters unchanged, whereas the update methods deletes all parameters not explicitly provided in the data_dict
+
+ckan.logic.action.patch.user_patch(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Patch a user
+
+Parameters
+:
+
+id (string) – the id or name of the user
+
+The difference between the update and patch methods is that the patch will perform an update of the provided parameters, while leaving all other parameters unchanged, whereas the update methods deletes all parameters not explicitly provided in the data_dict
+
+ckan.logic.action.delete
+
+API functions for deleting data from CKAN.
+
+ckan.logic.action.delete.user_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Delete a user.
+
+Only sysadmins can delete users.
+
+Parameters
+:
+
+id (string) – the id or name of the user to delete
+
+ckan.logic.action.delete.package_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Delete a dataset (package).
+
+This makes the dataset disappear from all web & API views, apart from the trash.
+
+You must be authorized to delete the dataset.
+
+Parameters
+:
+
+id (string) – the id or name of the dataset to delete
+
+ckan.logic.action.delete.dataset_purge(context: Context, data_dict: dict[str, Any])→ None
+
+Purge a dataset.
+
+Warning
+
+Purging a dataset cannot be undone!
+
+Purging a dataset completely removes the dataset from the CKAN database, whereas deleting a dataset simply marks the dataset as deleted (it will no longer show up in the front-end, but is still in the db).
+
+You must be authorized to purge the dataset.
+
+Parameters
+:
+
+id (string) – the name or id of the dataset to be purged
+
+ckan.logic.action.delete.resource_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Delete a resource from a dataset.
+
+You must be a sysadmin or the owner of the resource to delete it.
+
+Parameters
+:
+
+id (string) – the id of the resource
+
+ckan.logic.action.delete.resource_view_delete(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Delete a resource_view.
+
+Parameters
+:
+
+id (string) – the id of the resource_view
+
+ckan.logic.action.delete.resource_view_clear(context: Context, data_dict: dict[str, Any])→ None
+
+Delete all resource views, or all of a particular type.
+
+Parameters
+:
+
+view_types (list) – specific types to delete (optional)
+
+ckan.logic.action.delete.package_relationship_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Delete a dataset (package) relationship.
+
+You must be authorised to delete dataset relationships, and to edit both the subject and the object datasets.
+
+Parameters
+:
+
+subject (string) – the id or name of the dataset that is the subject of the relationship
+
+object (string) – the id or name of the dataset that is the object of the relationship
+
+type (string) – the type of the relationship
+
+ckan.logic.action.delete.member_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Remove an object (e.g. a user, dataset or group) from a group.
+
+You must be authorized to edit a group to remove objects from it.
+
+Parameters
+:
+
+id (string) – the id of the group
+
+object (string) – the id or name of the object to be removed
+
+object_type (string) – the type of the object to be removed, e.g. package or user
+
+ckan.logic.action.delete.package_collaborator_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Remove a collaborator from a dataset.
+
+Currently you must be an Admin on the dataset owner organization to manage collaborators.
+
+Note: This action requires the collaborators feature to be enabled with the ckan.auth.allow_dataset_collaborators configuration option.
+
+Parameters
+:
+
+id (string) – the id or name of the dataset
+
+user_id (string) – the id or name of the user to remove
+
+ckan.logic.action.delete.group_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Delete a group.
+
+You must be authorized to delete the group.
+
+Parameters
+:
+
+id (string) – the name or id of the group
+
+ckan.logic.action.delete.organization_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Delete an organization.
+
+You must be authorized to delete the organization and no datasets should belong to the organization unless ‘ckan.auth.create_unowned_dataset=True’
+
+Parameters
+:
+
+id (string) – the name or id of the organization
+
+ckan.logic.action.delete.group_purge(context: Context, data_dict: dict[str, Any])→ None
+
+Purge a group.
+
+Warning
+
+Purging a group cannot be undone!
+
+Purging a group completely removes the group from the CKAN database, whereas deleting a group simply marks the group as deleted (it will no longer show up in the frontend, but is still in the db).
+
+Datasets in the group will remain, just not in the purged group.
+
+You must be authorized to purge the group.
+
+Parameters
+:
+
+id (string) – the name or id of the group to be purged
+
+ckan.logic.action.delete.organization_purge(context: Context, data_dict: dict[str, Any])→ None
+
+Purge an organization.
+
+Warning
+
+Purging an organization cannot be undone!
+
+Purging an organization completely removes the organization from the CKAN database, whereas deleting an organization simply marks the organization as deleted (it will no longer show up in the frontend, but is still in the db).
+
+Datasets owned by the organization will remain, just not in an organization anymore.
+
+You must be authorized to purge the organization.
+
+Parameters
+:
+
+id (string) – the name or id of the organization to be purged
+
+ckan.logic.action.delete.task_status_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Delete a task status.
+
+You must be a sysadmin to delete task statuses.
+
+Parameters
+:
+
+id (string) – the id of the task status to delete
+
+ckan.logic.action.delete.vocabulary_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Delete a tag vocabulary.
+
+You must be a sysadmin to delete vocabularies.
+
+Parameters
+:
+
+id (string) – the id of the vocabulary
+
+ckan.logic.action.delete.tag_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Delete a tag.
+
+You must be a sysadmin to delete tags.
+
+Parameters
+:
+
+id (string) – the id or name of the tag
+
+vocabulary_id (string) – the id or name of the vocabulary that the tag belongs to (optional, default: None)
+
+ckan.logic.action.delete.unfollow_user(context: Context, data_dict: dict[str, Any])→ None
+
+Stop following a user.
+
+Parameters
+:
+
+id (string) – the id or name of the user to stop following
+
+ckan.logic.action.delete.unfollow_dataset(context: Context, data_dict: dict[str, Any])→ None
+
+Stop following a dataset.
+
+Parameters
+:
+
+id (string) – the id or name of the dataset to stop following
+
+ckan.logic.action.delete.group_member_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Remove a user from a group.
+
+You must be authorized to edit the group.
+
+Parameters
+:
+
+id (string) – the id or name of the group
+
+username (string) – name or id of the user to be removed
+
+ckan.logic.action.delete.organization_member_delete(context: Context, data_dict: dict[str, Any])→ None
+
+Remove a user from an organization.
+
+You must be authorized to edit the organization.
+
+Parameters
+:
+
+id (string) – the id or name of the organization
+
+username (string) – name or id of the user to be removed
+
+ckan.logic.action.delete.unfollow_group(context: Context, data_dict: dict[str, Any])→ None
+
+Stop following a group.
+
+Parameters
+:
+
+id (string) – the id or name of the group to stop following
+
+ckan.logic.action.delete.job_clear(context: Context, data_dict: dict[str, Any])→ list[str]
+
+Clear background job queues.
+
+Does not affect jobs that are already being processed.
+
+Parameters
+:
+
+queues (list) – The queues to clear. If not given then ALL queues are cleared.
+
+Returns
+:
+
+The cleared queues.
+
+Return type
+:
+
+list
+
+Added in version 2.7.
+
+ckan.logic.action.delete.job_cancel(context: Context, data_dict: dict[str, Any])→ None
+
+Cancel a queued background job.
+
+Removes the job from the queue and deletes it.
+
+Parameters
+:
+
+id (string) – The ID of the background job.
+
+Added in version 2.7.
+
+ckan.logic.action.delete.api_token_revoke(context: Context, data_dict: dict[str, Any])→ None
+
+Delete API Token.
+
+Parameters
+:
+
+token (string) – Token to remove (required if jti not specified).
+
+jti (string) – ID of the token to remove (overrides token if specified).
+
+Added in version 3.0.
+
+ckan.logic.action.file
+
+File management API.
+
+This module contains actions specific to the file domain.
+
+The API defined here provides only a minimal, predictable set of operations that are common to all supported storage backends. These operations are deliberately limited to generic functionality (such as creating, reading, updating, and deleting files) which can be implemented consistently across different adapters without relying on storage-specific features.
+
+It is important to note that modern storage systems often provide a rich set of advanced capabilities — for example multipart and resumable uploads, pre-signed URLs for controlled access, or native copy and move operations. These are not exposed directly by this module, since their availability and behavior vary significantly between storage providers.
+
+Developers who require such advanced functionality are encouraged to build custom APIs on top of this foundation, leveraging the underlying file-keeper library. That library offers direct access to adapter-specific features while still keeping a consistent abstraction layer. By combining the generic operations here with the richer primitives provided by file-keeper, projects can tailor their file management workflows to best match their storage backend.
+
+ckan.logic.action.file.file_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Create a new file.
+
+The action passes uploaded file to the storage without strict validation. File is converted into standard upload object and everything else is controlled by storage. The same file may be accepted by one storage and rejected by another, depending on its configuration.
+
+name parameter is used to compute the name of the file in the storage. It always sanitized with munge_filename() to avoid directory traversal. Additionally, it can be transformed via storage’s location_transformers. These are the function that are applied to the name after sanitization anb before file is written to the storage. For example, filename can be transformed into UUIDv4 using uuid4 transformer, to prevent name collisions. Alternatively, for the same reason, file can be prefixed with an ISO 8601 datetime using datetime_prefix transformers. After sanitization and transformations, the result name must be unique in the storage, just like any normal filename in the directory.
+
+Note
+
+Because of sanitization, path fragments preceeding the file’s name will be removed. This step is mandatory and cannot be disabled because it creates a serious security issue for the portal. Usually, when uploads into different directories are required, one can use different storages that are connected to the same filesystem/cloud, but point to the different directory via path option. If specific storage must upload files to the nested directory structure, consider using placeholders in the name of the file and custom transformer that converts placeholders into path separators. For example, use tripple underscore instead of /: path___of___the___file.txt. Then register transformer using files_get_location_transformers():
+
+def files_get_location_transformers(self):
+    import os
+    def nested_path_transformer(location, upload, extras):
+        path = os.path.sep.join(location.split("___"))
+        if ".." in path:
+            raise ValueError("suspicious path")
+        return path
+
+    return {
+        "my_ext:nested_path": nested_path_transformer,
+    }
+
+
+Finally, add transformer to the storage settings:
+
+ckan.files.storage.MY_STORAGE.location_transformers = my_ext:nested_path
+
+
+This action is not intended to be used directly. By default only sysadmin is allowed to call this action. For simple workflows, access can be also granted to every registered user via ckan.files.authenticated_uploads.allow config option. Enabling this option also requires specifying names of storages that can be used by common users. For this purpose, use ckan.files.authenticated_uploads.storages config option. This option is not recommended for portals with public user registration, because it literally allows user to turn CKAN into his personal file storage.
+
+Also, there is no built-in option to enable uploads for anonymous users, because files will be created without an owner and may remain untracked in the system consuming space and causing extra charges for the file storage.
+
+Instead of enabling access to this action for every registered user, the recommended approach is to create a different action for handling specific type of uploads. Implement dedicated auth function for this new action and then use it to upload files into a signle target storage, controlling upload quota per user or any other aspects of uploads. Internally, this new action can call file_create bypassing its authorization, as long as new action has reliable auth function:
+
+def avatar_upload(context, data_dict):
+    logic.check_access("avatar_upload", context, data_dict)
+    storage = "avatars"
+    name = context["user"] + ".jpeg"
+    upload = data_dict["upload"]
+    return tk.get_action("file_create")(
+        Context(context, ignore_auth=True),
+        {"name": name, "storage": storage, "upload": upload},
+    )
+
+
+When uploading a real file(or using werkqeug.datastructures.FileStorage), name parameter can be omited. In this case, the name of uploaded file is used:
+
+$ ckanapi action file_create upload@path/to/file.txt
+
+
+When uploading a raw content of the file using bytes object, name is mandatory:
+
+$ ckanapi action file_create upload@<(echo -n "hello world") name=file.txt
+
+
+Note
+
+Requires storage with CREATE capability.
+
+Parameters
+:
+
+name (str, optional) – human-readable name of the file, unique per storage. Defaults to filename of upload
+
+storage (str, optional) – name of the storage that will handle the upload. Defaults to the configured default storage.
+
+upload (bytes | file | FileStorage | Upload) – content of the file as bytes, file descriptor or uploaded file
+
+Returns
+:
+
+file details.
+
+ckan.logic.action.file.file_register(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Register untracked file from storage in DB.
+
+Note
+
+Requires storage with ANALYZE capability.
+
+Parameters
+:
+
+location (str, optional) – location of the file in the storage
+
+storage (str, optional) – name of the storage that will handle the upload. Defaults to the configured default storage.
+
+Returns
+:
+
+file details.
+
+ckan.logic.action.file.file_delete(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Remove file from storage.
+
+Unlike packages, file has no state field. Removal usually means that file details removed from DB and file itself removed from the storage.
+
+Some storage adapters can implement revisions of the file and keep archived versions or backups. Check storage adapter’s documentation if you need to know whether there are chances that file is not completely removed with this operation.
+
+$ ckanapi action file_delete id=226056e2-6f83-47c5-8bd2-102e2b82ab9a
+
+
+Note
+
+Requires storage with REMOVE capability.
+
+Parameters
+:
+
+id (str) – ID of the file
+
+Returns
+:
+
+details of the removed file.
+
+ckan.logic.action.file.file_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Show file details.
+
+This action only displays information from DB record. There is no way to get the content of the file using this action(or any other API action).
+
+$ ckanapi action file_show id=226056e2-6f83-47c5-8bd2-102e2b82ab9a
+
+Parameters
+:
+
+id (str) – ID of the file
+
+Returns
+:
+
+file details
+
+ckan.logic.action.file.file_rename(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Rename the file.
+
+This action changes human-readable name of the file, which is stored in DB. Real location of the file in the storage is not modified.
+
+$ ckanapi action file_show id=226056e2-6f83-47c5-8bd2-102e2b82ab9a \
+    name=new-name.txt
+
+Parameters
+:
+
+id (str) – ID of the file
+
+name (str) – new name of the file
+
+Returns
+:
+
+file details
+
+ckan.logic.action.file.file_pin(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Pin file to the current owner.
+
+Pinned file cannot be transfered to a different owner. Use it to guarantee that file referred by entity is not accidentally transferred to a different owner.
+
+Parameters
+:
+
+id (str) – ID of the file
+
+Returns
+:
+
+details of the pinned file
+
+ckan.logic.action.file.file_unpin(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Unpin file from the current owner.
+
+Unpinned file can be transfered to a different owner.
+
+Parameters
+:
+
+id (str) – ID of the file
+
+Returns
+:
+
+details of the unpinned file
+
+ckan.logic.action.file.file_ownership_transfer(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Transfer file ownership.
+
+Ownership determines required permissions to manage file. If file owned by a user, that user can see/modify/delete the file. If file owned by any other entity that supports cascade access, permissions regarding this entity determine file permissions.
+
+For example, if file owned by a package because its owner_type set to package and owner_id set to package’s ID, whenever user performs an operation on the file, system checks if user can perform the same operation on the package. When user tries to read the file, system checks whether user can read the package; when user tries to delete the file, system checks whether user can delete the package. And result of this cascade checks determines success of the operation.
+
+owner_type is not restricted by existing entities. Anything that has corresponding auth functions(<smth>_show, <smth>_update, <smth>_delete) can be used as an owner. These functions will be called with id set to owner_id when cascade permission is checked.
+
+For example, to grant read access on the file to any user with the specific email domain, set the owner_type to email_domain and owner_id to @specific.domain.com. Then add email_domain to ckan.files.owner.cascade_access config option to enable cascade check for this owner type. Finally, register email_domain_show auth function that checks permissions:
+
+def email_domain_show(context, data_dict):
+    email = context["auth_user_obj"]["email"]
+    domain = data_dict["id"]
+    return {
+        "success": email.endswith(domain),
+    }
+
+Parameters
+:
+
+id (str) – ID of the file upload
+
+owner_id (str) – ID of the new owner
+
+owner_type (str) – type of the new owner
+
+force (bool) – move file even if it’s pinned. Default: False
+
+pin (bool) – pin file after transfer to stop future transfers. Default: False
+
+Returns
+:
+
+details of tranfered file
+
+ckan.logic.action.file.file_owner_scan(context: Context, data_dict: dict[str, Any])→ FileSearch
+
+List files of the owner.
+
+Warning
+
+This action has a high probability to be changed or removed in future.
+
+This action requires <owner_type>_update permission when ckan.files.owner.scan_as_update is enabled and <owner_type>_file_scan otherwise.
+
+Parameters
+:
+
+owner_id (str) – ID of the owner
+
+owner_type (str) – type of the owner
+
+start (int, optional) – index of first row in result/number of rows to skip.
+
+rows (int, optional) – number of rows to return.
+
+sort (str, optional) – name of File column used for sorting. Default: name
+
+Returns
+:
+
+dictionary with count and results
+
+ckanext.activity.logic.action
+
+Note
+
+These actions are only available when the activity plugin is enabled.
+
+ckanext.activity.logic.action.send_email_notifications(context: Context, data_dict: dict[str, Any])→ None
+
+Send any pending activity stream notification emails to users.
+
+You must provide a sysadmin’s API key/token in the Authorization header of the request, or call this action from the command-line via a ckan notify send_emails … command.
+
+ckanext.activity.logic.action.dashboard_mark_activities_old(context: Context, data_dict: dict[str, Any])→ None
+
+Mark all the authorized user’s new dashboard activities as old.
+
+This will reset dashboard_new_activities_count() to 0.
+
+ckanext.activity.logic.action.activity_create(context: Context, data_dict: dict[str, Any])→ dict[str, Any] | None
+
+Create a new activity stream activity.
+
+You must be a sysadmin to create new activities.
+
+Parameters
+:
+
+user_id (string) – the name or id of the user who carried out the activity, e.g. 'seanh'
+
+object_id – the name or id of the object of the activity, e.g. 'my_dataset'
+
+activity_type (string) – the type of the activity, this must be an activity type that CKAN knows how to render, e.g. 'new package', 'changed user', 'deleted group' etc.
+
+data (dictionary) – any additional data about the activity
+
+Returns
+:
+
+the newly created activity
+
+Return type
+:
+
+dictionary
+
+ckanext.activity.logic.action.user_activity_list(context: Context, data_dict: dict[str, Any])→ list[dict[str, Any]]
+
+Return a user’s public activity stream.
+
+You must be authorized to view the user’s profile.
+
+Parameters
+:
+
+id (string) – the id or name of the user
+
+offset (int) – where to start getting activity items from (optional, default: 0)
+
+limit (int) – the maximum number of activities to return (optional, default: 31 unless set in site’s configuration ckan.activity_list_limit, upper limit: 100 unless set in site’s configuration ckan.activity_list_limit_max)
+
+after (int, str) – After timestamp (optional, default: None)
+
+before (int, str) – Before timestamp (optional, default: None)
+
+Return type
+:
+
+list of dictionaries
+
+ckanext.activity.logic.action.package_activity_list(context: Context, data_dict: dict[str, Any])→ list[dict[str, Any]]
+
+Return a package’s activity stream (not including detail)
+
+You must be authorized to view the package.
+
+Parameters
+:
+
+id (string) – the id or name of the package
+
+offset (int) – where to start getting activity items from (optional, default: 0)
+
+limit (int) – the maximum number of activities to return (optional, default: 31 unless set in site’s configuration ckan.activity_list_limit, upper limit: 100 unless set in site’s configuration ckan.activity_list_limit_max)
+
+after (int, str) – After timestamp (optional, default: None)
+
+before (int, str) – Before timestamp (optional, default: None)
+
+include_hidden_activity (bool) – whether to include ‘hidden’ activity, which is not shown in the Activity Stream page. Hidden activity includes activity done by the site_user, such as harvests, which are not shown in the activity stream because they can be too numerous, or activity by other users specified in config option ckan.hide_activity_from_users. NB Only sysadmins may set include_hidden_activity to true. (default: false)
+
+activity_types (list) – A list of activity types to include in the response
+
+exclude_activity_types (list) – A list of activity types to exclude from the response
+
+Return type
+:
+
+list of dictionaries
+
+ckanext.activity.logic.action.group_activity_list(context: Context, data_dict: dict[str, Any])→ list[dict[str, Any]]
+
+Return a group’s activity stream.
+
+You must be authorized to view the group.
+
+Parameters
+:
+
+id (string) – the id or name of the group
+
+offset (int) – where to start getting activity items from (optional, default: 0)
+
+limit (int) – the maximum number of activities to return (optional, default: 31 unless set in site’s configuration ckan.activity_list_limit, upper limit: 100 unless set in site’s configuration ckan.activity_list_limit_max)
+
+include_hidden_activity (bool) – whether to include ‘hidden’ activity, which is not shown in the Activity Stream page. Hidden activity includes activity done by the site_user, such as harvests, which are not shown in the activity stream because they can be too numerous, or activity by other users specified in config option ckan.hide_activity_from_users. NB Only sysadmins may set include_hidden_activity to true. (default: false)
+
+Return type
+:
+
+list of dictionaries
+
+ckanext.activity.logic.action.organization_activity_list(context: Context, data_dict: dict[str, Any])→ list[dict[str, Any]]
+
+Return a organization’s activity stream.
+
+Parameters
+:
+
+id (string) – the id or name of the organization
+
+offset (int) – where to start getting activity items from (optional, default: 0)
+
+limit (int) – the maximum number of activities to return (optional, default: 31 unless set in site’s configuration ckan.activity_list_limit, upper limit: 100 unless set in site’s configuration ckan.activity_list_limit_max)
+
+include_hidden_activity (bool) – whether to include ‘hidden’ activity, which is not shown in the Activity Stream page. Hidden activity includes activity done by the site_user, such as harvests, which are not shown in the activity stream because they can be too numerous, or activity by other users specified in config option ckan.hide_activity_from_users. NB Only sysadmins may set include_hidden_activity to true. (default: false)
+
+Return type
+:
+
+list of dictionaries
+
+ckanext.activity.logic.action.recently_changed_packages_activity_list(context: Context, data_dict: dict[str, Any])→ list[dict[str, Any]]
+
+Return the activity stream of all recently added or changed packages.
+
+Parameters
+:
+
+offset (int) – where to start getting activity items from (optional, default: 0)
+
+limit (int) – the maximum number of activities to return (optional, default: 31 unless set in site’s configuration ckan.activity_list_limit, upper limit: 100 unless set in site’s configuration ckan.activity_list_limit_max)
+
+Return type
+:
+
+list of dictionaries
+
+ckanext.activity.logic.action.dashboard_activity_list(context: Context, data_dict: dict[str, Any])→ list[dict[str, Any]]
+Return the authorized (via login or API key) user’s dashboard activity
+
+stream.
+
+Unlike the activity dictionaries returned by other *_activity_list actions, these activity dictionaries have an extra boolean value with key is_new that tells you whether the activity happened since the user last viewed her dashboard ('is_new': True) or not ('is_new': False).
+
+The user’s own activities are always marked 'is_new': False.
+
+Parameters
+:
+
+offset (int) – where to start getting activity items from (optional, default: 0)
+
+limit (int) – the maximum number of activities to return (optional, default: 31 unless set in site’s configuration ckan.activity_list_limit, upper limit: 100 unless set in site’s configuration ckan.activity_list_limit_max)
+
+Return type
+:
+
+list of activity dictionaries
+
+ckanext.activity.logic.action.dashboard_new_activities_count(context: Context, data_dict: dict[str, Any])→ int
+
+Return the number of new activities in the user’s dashboard.
+
+Return the number of new activities in the authorized user’s dashboard activity stream.
+
+Activities from the user herself are not counted by this function even though they appear in the dashboard (users don’t want to be notified about things they did themselves).
+
+Return type
+:
+
+int
+
+ckanext.activity.logic.action.activity_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Show details of an item of ‘activity’ (part of the activity stream).
+
+Parameters
+:
+
+id (string) – the id of the activity
+
+Return type
+:
+
+dictionary
+
+ckanext.activity.logic.action.activity_data_show(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Show the data from an item of ‘activity’ (part of the activity stream).
+
+For example for a package update this returns just the dataset dict but none of the activity stream info of who and when the version was created.
+
+Parameters
+:
+
+id (string) – the id of the activity
+
+object_type (string) – ‘package’, ‘user’, ‘group’ or ‘organization’
+
+Return type
+:
+
+dictionary
+
+ckanext.activity.logic.action.activity_diff(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Returns a diff of the activity, compared to the previous version of the object
+
+Parameters
+:
+
+id (string) – the id of the activity
+
+object_type (string) – ‘package’, ‘user’, ‘group’ or ‘organization’
+
+diff_type (string) – ‘unified’, ‘context’, ‘html’
+
+ckanext.activity.logic.action.activity_delete_counts(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Returns counts of activities for the predefined delete options in the admin UI : older than 1 day, 30 days, 365 days, and total.
+
+ckanext.activity.logic.action.activity_delete_all(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Delete all activities. Deletes in batches (default batch size 50000) to avoid timeouts on large tables.
+
+Parameters
+:
+
+batch_size – Optional batch size for each delete round.
+
+ckanext.activity.logic.action.activity_delete(context: Context, data_dict: dict[str, Any])→ dict[str, Any]
+
+Deletes activities from the database based on a specified id, date range or offset days.
+
+Parameters
+:
+
+id (str) – The id of the activity to delete.
+
+start_date (str or datetime) – Start of range (ISO 8601, e.g. YYYY-MM-DD or YYYY-MM-DDTHH:mm).
+
+end_date (str or datetime) – End of range (ISO 8601, e.g. YYYY-MM-DD or YYYY-MM-DDTHH:mm).
+
+offset_days (int) – Number of days from today. Activities older than this will be deleted.
+
+keep (int) – Optional. When set, keep this many most recent activities per item; delete only older ones in the range.
+
+batch_size (int) – Optional. When set, delete in batches of this size to avoid timeouts and long locks on large tables (e.g. millions of rows).
+
+Note: Either provide both start_date and end_date to specify a date range, or provide offset_days to delete activities older than a specified number of days. Use keep to retain the N most recent activities per item. Use batch_size for large datasets to delete in chunks.
+
+Next 
+ Previous
+
+Support the CKAN Association.
+
+© 2009-2026 Open Knowledge Foundation and contributors. Licensed under Creative Commons Attribution ShareAlike (Unported) v3.0 License.
+ 
+
+Source — Issues — Mailing List — X @CKANProject
+
+Related Projects: DataCatalogs.org — OpenSpending.org — Open Data Handbook
+
+Sphinx theme provided by Read the Docs
+
