@@ -1,0 +1,23 @@
+# Environments
+venv/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.class
+
+# Assistant & Conductor Context (Development only)
+conductor/
+GEMINI.md
+siguientes pasos.txt
+"✦ He creado toda la estructura.2do"
+documentacion_datos_gob.txt
+
+# Assets (Originals/Mockups not for prod)
+sarava-ui.jpg
+logo-saravasales-horizontal.png
+logo-saravasales-horizontal.png:Zone.Identifier
+
+# OS
+.DS_Store
