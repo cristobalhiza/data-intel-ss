@@ -36,6 +36,7 @@ El sistema cuenta con flujos principales diseñados para procesar grandes volúm
 *   **Enriquecimiento de Dominios (NIC Chile):** Descarga los listados CSV de dominios `.cl` recientes desde NIC Chile (`www.nic.cl/registry/Ultimos.do`) y realiza matching fuzzy contra las razones sociales de la base de datos para inferir dominios web de empresas. Incluye umbral de similitud configurable y modo dry-run. (*Script: `etl_nic_chile.py`*)
 *   **Ingesta Masiva de Órdenes de Compra (ChileCompra OCDS):** Procesa archivos ZIP semestrales desde los Azure Blobs de ChileCompra (`transparenciachc.blob.core.windows.net/oc-da`), extrae órdenes de compra con `RutSucursal`, `MontoTotalOC`, `Estado`, `CodigoLicitacion`, y realiza UPSERT masivo en la tabla `ordenes_compra`. Soporta formato `;` delimitado, decimales con coma, y procesamiento por chunks. (*Script: `etl_chilecompra_masivo.py`*)
 *   **Enriquecimiento INAPI (Marcas/Patentes):** Descarga datasets XLSX de INAPI desde datos.gob.cl, identifica empresas chilenas por fuzzy matching de nombre contra `razon_social`, y actualiza flags `tiene_marca` / `tiene_patente` con clasificaciones Niza/IPC. Proxy de innovación y madurez empresarial. (*Script: `etl_inapi.py`*)
+*   **Fallback DDGS (Descubrimiento de Dominios):** Para empresas sin dominio web, realiza búsquedas gratuitas vía DuckDuckGo (`ddgs`) usando la razón social, parsea los resultados buscando dominios `.cl`/`.com`, y aplica un filtro de confianza basado en frecuencia de aparición y presencia del nombre en títulos. Gratuito, sin API key. (*Script: `etl_ddgs_fallback.py`*)
 
 #### Framework de Pipeline (`pipeline_core.py`)
 Módulo reutilizable que proporciona:
@@ -136,6 +137,12 @@ Para enriquecer empresas con datos INAPI (marcas/patentes):
 ```bash
 export SARAVA_DB_PORT="3307" SARAVA_DB_USER="sarava_user" SARAVA_DB_PASS="8977"
 python etl_inapi.py --year 2025 --type marcas --dry-run
+```
+
+Para descubrir dominios vía DDGS fallback:
+```bash
+export SARAVA_DB_PORT="3307" SARAVA_DB_USER="sarava_user" SARAVA_DB_PASS="8977"
+python etl_ddgs_fallback.py --limit 50 --dry-run
 ```
 
 Para ejecutar el test suite:
