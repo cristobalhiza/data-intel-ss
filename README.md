@@ -58,12 +58,14 @@ Módulo reutilizable que proporciona:
 *   **Estética "Database-First":** Interfaz rediseñada con un estilo industrial/brutalista que evoca terminales de datos y bases de datos clásicas (bordes gruesos, fuentes monoespaciadas, sombras sólidas).
 *   **Tecnología:** HTML5 + Alpine.js + TailwindCSS con tipografías *Inter* y *JetBrains Mono*.
 *   **Branding Actualizado:** Uso de activos WebP optimizados (`logo-saravasales-horizontal.webp`) y enlaces directos a canales de contacto corporativos.
-*   **Sección de Transparencia:** Panel interactivo de "Fuentes de Información Oficial" que detalla el origen de los datos (SII, ChileCompra, Registro de Empresas y Sociedades).
+*   **Sección de Transparencia:** Panel interactivo de "Fuentes de Información Oficial" que detalla el origen de los datos (SII, ChileCompra, NIC Chile, INAPI, DDGS, mindicador.cl, Mercado Público).
 *   **Interfaz Avanzada:** 
     *   Área de pegado masivo para listas de RUTs (Batch Paste).
-    *   **Búsqueda Avanzada:** Selectores dinámicos de campo (RUT, Razón Social, Email, etc.) y condiciones (Exacto, Contiene, Empieza con, Tiene Valor).
-    *   **Ordenamiento y Paginación:** Tabla de resultados reactiva con control de registros por página y ordenamiento instantáneo (asc/desc) por columna.
-    *   Indicadores visuales ("VERIFIED") para empresas con data enriquecida.
+    *   **Búsqueda Avanzada:** Selectores dinámicos de campo (RUT, Razón Social, Email, Dominio, Nombre Fantasía, etc.) y condiciones (Exacto, Contiene, Empieza con, Tiene Valor) con debounce (400ms).
+    *   **Quick Filters:** Filtros instantáneos por calidad de datos: Con Dominio, Con Email, Con Marca, Con Patente, Score>60%, Proveedor Estado.
+    *   **Score de Completitud Visual:** Barra de progreso coloreada (rojo/amarillo/verde) con badges de calidad (DOM, MAIL, REP, TEL).
+    *   **Ordenamiento y Paginación:** Tabla de resultados reactiva con control de registros por página y ordenamiento instantáneo (asc/desc) por columna, incluyendo score numérico.
+    *   Indicadores visuales ("VERIFIED") para empresas con data enriquecida, badges ™️ para marcas y 🔬 para patentes.
 
 ### 6. Sistema de Sincronización Inteligente (Smart Sync)
 Para maximizar la eficiencia y calidad del dato, el sistema implementa una capa de control avanzada:
