@@ -17,6 +17,10 @@ CREATE TABLE IF NOT EXISTS empresas_directorio (
     mp_codigo_empresa VARCHAR(50), -- Código interno de Mercado Público
     enriquecido_por VARCHAR(50) DEFAULT 'RES',
     score_completitud TINYINT UNSIGNED DEFAULT 0, -- Porcentaje 0-100 de campos poblados
+    tiene_marca BOOLEAN DEFAULT FALSE, -- Flag de marca registrada (INAPI)
+    tiene_patente BOOLEAN DEFAULT FALSE, -- Flag de patente registrada (INAPI)
+    niza_classes JSON, -- Clases de Niza para marcas (INAPI)
+    ipc_classes JSON, -- Clasificación IPC para patentes (INAPI)
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     historial_last_sync TIMESTAMP NULL, -- Fecha de la última sincronización del historial (OCs/Licitaciones)
