@@ -34,6 +34,7 @@ El sistema cuenta con flujos principales diseñados para procesar grandes volúm
 *   **Enriquecimiento Comercial (Mercado Público):** Procesa archivos masivos CSV provenientes de **Datos Abiertos ChileCompra** (`datos-abiertos.chilecompra.cl`). Extrae Representante, Email, Teléfono, y procesa automáticamente el dominio web corporativo descartando correos gratuitos. (*Script: `etl_enriquecimiento.py`*)
 *   **Orquestador de Descargas Masivas:** Para ingerir años de transacciones automáticamente, se utiliza el script `automatizar_descargas.py`. Este script se conecta a los Azure Blobs de ChileCompra (`transparenciachc.blob.core.windows.net`), descarga los archivos `.zip` semestrales de un rango de años específico (ej. 2021-2026), los extrae en `/tmp`, procesa los CSVs gigantes con `etl_enriquecimiento.py` y los elimina inmediatamente para **no saturar el disco duro**.
 *   **Enriquecimiento de Dominios (NIC Chile):** Descarga los listados CSV de dominios `.cl` recientes desde NIC Chile (`www.nic.cl/registry/Ultimos.do`) y realiza matching fuzzy contra las razones sociales de la base de datos para inferir dominios web de empresas. Incluye umbral de similitud configurable y modo dry-run. (*Script: `etl_nic_chile.py`*)
+*   **Ingesta Masiva de Órdenes de Compra (ChileCompra OCDS):** Procesa archivos ZIP semestrales desde los Azure Blobs de ChileCompra (`transparenciachc.blob.core.windows.net/oc-da`), extrae órdenes de compra con `RutSucursal`, `MontoTotalOC`, `Estado`, `CodigoLicitacion`, y realiza UPSERT masivo en la tabla `ordenes_compra`. Soporta formato `;` delimitado, decimales con coma, y procesamiento por chunks. (*Script: `etl_chilecompra_masivo.py`*)
 
 #### Framework de Pipeline (`pipeline_core.py`)
 Módulo reutilizable que proporciona:
@@ -122,6 +123,12 @@ Para enriquecer dominios web desde NIC Chile (dry-run primero):
 ```bash
 export SARAVA_DB_PORT="3307" SARAVA_DB_USER="sarava_user" SARAVA_DB_PASS="8977"
 python etl_nic_chile.py --period 1d --dry-run --threshold 0.72
+```
+
+Para poblar órdenes de compra desde ChileCompra masivo:
+```bash
+export SARAVA_DB_PORT="3307" SARAVA_DB_USER="sarava_user" SARAVA_DB_PASS="8977"
+python etl_chilecompra_masivo.py --year 2024 --semester 1 --dry-run
 ```
 
 Para ejecutar el test suite:
