@@ -35,6 +35,7 @@ El sistema cuenta con flujos principales diseñados para procesar grandes volúm
 *   **Orquestador de Descargas Masivas:** Para ingerir años de transacciones automáticamente, se utiliza el script `automatizar_descargas.py`. Este script se conecta a los Azure Blobs de ChileCompra (`transparenciachc.blob.core.windows.net`), descarga los archivos `.zip` semestrales de un rango de años específico (ej. 2021-2026), los extrae en `/tmp`, procesa los CSVs gigantes con `etl_enriquecimiento.py` y los elimina inmediatamente para **no saturar el disco duro**.
 *   **Enriquecimiento de Dominios (NIC Chile):** Descarga los listados CSV de dominios `.cl` recientes desde NIC Chile (`www.nic.cl/registry/Ultimos.do`) y realiza matching fuzzy contra las razones sociales de la base de datos para inferir dominios web de empresas. Incluye umbral de similitud configurable y modo dry-run. (*Script: `etl_nic_chile.py`*)
 *   **Ingesta Masiva de Órdenes de Compra (ChileCompra OCDS):** Procesa archivos ZIP semestrales desde los Azure Blobs de ChileCompra (`transparenciachc.blob.core.windows.net/oc-da`), extrae órdenes de compra con `RutSucursal`, `MontoTotalOC`, `Estado`, `CodigoLicitacion`, y realiza UPSERT masivo en la tabla `ordenes_compra`. Soporta formato `;` delimitado, decimales con coma, y procesamiento por chunks. (*Script: `etl_chilecompra_masivo.py`*)
+*   **Enriquecimiento INAPI (Marcas/Patentes):** Descarga datasets XLSX de INAPI desde datos.gob.cl, identifica empresas chilenas por fuzzy matching de nombre contra `razon_social`, y actualiza flags `tiene_marca` / `tiene_patente` con clasificaciones Niza/IPC. Proxy de innovación y madurez empresarial. (*Script: `etl_inapi.py`*)
 
 #### Framework de Pipeline (`pipeline_core.py`)
 Módulo reutilizable que proporciona:
@@ -129,6 +130,12 @@ Para poblar órdenes de compra desde ChileCompra masivo:
 ```bash
 export SARAVA_DB_PORT="3307" SARAVA_DB_USER="sarava_user" SARAVA_DB_PASS="8977"
 python etl_chilecompra_masivo.py --year 2024 --semester 1 --dry-run
+```
+
+Para enriquecer empresas con datos INAPI (marcas/patentes):
+```bash
+export SARAVA_DB_PORT="3307" SARAVA_DB_USER="sarava_user" SARAVA_DB_PASS="8977"
+python etl_inapi.py --year 2025 --type marcas --dry-run
 ```
 
 Para ejecutar el test suite:
