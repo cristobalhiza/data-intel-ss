@@ -12,15 +12,19 @@ CREATE TABLE IF NOT EXISTS empresas_directorio (
     email_contacto VARCHAR(255),
     telefono VARCHAR(50),
     dominio_web VARCHAR(255),
+    dominio_web_fuente VARCHAR(50), -- Fuente de descubrimiento del dominio (NIC, ruts.info, etc.)
+    actividades_economicas JSON, -- Array de objetos {codigo, descripcion, es_principal}
     mp_codigo_empresa VARCHAR(50), -- Código interno de Mercado Público
     enriquecido_por VARCHAR(50) DEFAULT 'RES',
+    score_completitud TINYINT UNSIGNED DEFAULT 0, -- Porcentaje 0-100 de campos poblados
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     historial_last_sync TIMESTAMP NULL, -- Fecha de la última sincronización del historial (OCs/Licitaciones)
     status ENUM('ACTIVE', 'INACTIVE', 'REMOVED_FROM_SOURCE') DEFAULT 'ACTIVE',
     PRIMARY KEY (rut),
     INDEX idx_comuna_region (region, comuna),
-    INDEX idx_last_seen (last_seen_at)
+    INDEX idx_last_seen (last_seen_at),
+    INDEX idx_dominio_web (dominio_web)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS sync_status (

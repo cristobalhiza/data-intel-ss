@@ -21,3 +21,5 @@ logo-saravasales-horizontal.png:Zone.Identifier
 
 # OS
 .DS_Store
+.coverage
+__pycache__/
