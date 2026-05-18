@@ -127,9 +127,11 @@
                                 <option value="rut">RUT_UNICO</option>
                                 <option value="giro">ACTIVIDAD_ECON</option>
                                 <option value="comuna">UBICACION_COMUNA</option>
+                                <option value="region">REGION</option>
                                 <option value="representante_legal">REP_LEGAL</option>
                                 <option value="email_contacto">EMAIL_CONTACT</option>
                                 <option value="dominio_web">DOMINIO_WEB</option>
+                                <option value="nombre_fantasia">NOMBRE_FANTASIA</option>
                             </select>
                         </div>
                         <div class="flex flex-col gap-1">
@@ -144,13 +146,22 @@
                     </div>
 
                     <div class="relative mb-4">
-                        <input type="text" x-model="searchQuery" @keyup.enter="executeSearch" :disabled="hasSearchInputDisabled" :placeholder="hasSearchInputDisabled ? 'NULL_PARAM' : 'SEARCH_STRING...'" :class="{'bg-gray-100 opacity-70': hasSearchInputDisabled}" class="w-full p-4 pl-12 border-2 border-gray-200 rounded-none focus:ring-0 focus:border-primary outline-none transition-all font-mono text-sm">
+                        <input type="text" x-model="searchQuery" @keyup="debouncedSearch()" @keyup.enter="executeSearch" :disabled="hasSearchInputDisabled" :placeholder="hasSearchInputDisabled ? 'NULL_PARAM' : 'SEARCH_STRING...'" :class="{'bg-gray-100 opacity-70': hasSearchInputDisabled}" class="w-full p-4 pl-12 border-2 border-gray-200 rounded-none focus:ring-0 focus:border-primary outline-none transition-all font-mono text-sm">
                         <svg class="w-5 h-5 absolute left-4 top-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
                     
-                    <div class="mb-6 flex items-center gap-2">
-                        <input type="checkbox" id="providerOnly" x-model="providerOnly" class="w-4 h-4 text-primary bg-gray-100 border-2 border-gray-300 rounded-none focus:ring-primary focus:ring-2 cursor-pointer">
-                        <label for="providerOnly" class="text-[10px] font-bold text-gray-700 uppercase font-mono cursor-pointer select-none border-b border-dashed border-gray-400">ONLY_STATE_SUPPLIERS (B2B)</label>
+                    <div class="mb-6 flex flex-wrap items-center gap-3">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase font-mono">Quick_Filters:</label>
+                        <template x-for="filter in quickFilters" :key="filter.key">
+                            <button 
+                                @click="toggleQuickFilter(filter.key)"
+                                :class="activeQuickFilters.includes(filter.key) ? 'bg-secondary text-white border-secondary' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-500'"
+                                class="text-[10px] font-bold uppercase font-mono px-2 py-1 border-2 transition-colors flex items-center gap-1"
+                            >
+                                <span x-text="filter.label"></span>
+                                <span x-show="activeQuickFilters.includes(filter.key)" class="text-[9px]">✓</span>
+                            </button>
+                        </template>
                     </div>
                     
                     <div class="mt-auto">
@@ -217,25 +228,31 @@
                 <table class="w-full text-left whitespace-nowrap font-mono text-sm">
                     <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider border-b-2 border-gray-900">
                         <tr>
-                            <th class="p-4 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none" @click="toggleSort('rut')">
+                            <th class="p-3 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none w-32" @click="toggleSort('rut')">
                                 <div class="flex items-center justify-between">
                                     COL_RUT 
                                     <span x-show="sortField === 'rut'" class="text-secondary" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                                 </div>
                             </th>
-                            <th class="p-4 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none" @click="toggleSort('razon_social')">
+                            <th class="p-3 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none" @click="toggleSort('razon_social')">
                                 <div class="flex items-center justify-between">
-                                    COL_NAME_IDENTITY
+                                    COL_IDENTITY
                                     <span x-show="sortField === 'razon_social'" class="text-secondary" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                                 </div>
                             </th>
-                            <th class="p-4 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none" @click="toggleSort('comuna')">
+                            <th class="p-3 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none w-40" @click="toggleSort('score_completitud')">
+                                <div class="flex items-center justify-between">
+                                    COL_QUALITY
+                                    <span x-show="sortField === 'score_completitud'" class="text-secondary" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                                </div>
+                            </th>
+                            <th class="p-3 font-bold cursor-pointer hover:bg-gray-100 transition-colors select-none w-40" @click="toggleSort('comuna')">
                                 <div class="flex items-center justify-between">
                                     COL_LOCATION
                                     <span x-show="sortField === 'comuna'" class="text-secondary" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                                 </div>
                             </th>
-                            <th class="p-4 font-bold">
+                            <th class="p-3 font-bold w-56">
                                 COL_ENRICHED_DATA
                             </th>
                         </tr>
@@ -261,59 +278,92 @@
 
                         <!-- Data Rows -->
                         <template x-for="row in paginatedResults" :key="row.rut">
-                            <tr class="hover:bg-gray-50 transition-colors group">
-                                <td class="p-4 align-top">
-                                    <div class="text-sm text-gray-600 group-hover:text-secondary font-bold" x-text="row.rut"></div>
+                            <tr class="hover:bg-gray-50 transition-colors group border-b border-gray-100">
+                                <td class="p-3 align-top">
+                                    <div class="text-xs text-gray-600 group-hover:text-secondary font-bold" x-text="row.rut"></div>
+                                    <div class="mt-1">
+                                        <button @click="openDashboard(row)" class="text-[9px] font-bold text-secondary hover:text-primary transition-colors uppercase flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                                            RADAR
+                                        </button>
+                                    </div>
                                 </td>
-                                <td class="p-4 align-top">
-                                    <div class="font-bold text-gray-900 flex items-center flex-wrap gap-2">
+                                <td class="p-3 align-top">
+                                    <div class="font-bold text-sm text-gray-900 flex items-center flex-wrap gap-2">
                                         <span x-text="row.razon_social || '-'"></span>
-                                        <template x-if="row.email_contacto || row.dominio_web || row.representante_legal">
-                                            <span class="db-badge text-green-700 border-green-700 bg-green-50" :title="`VERIFIED_BY: ${row.enriquecido_por}`">
-                                                VERIFIED
-                                            </span>
+                                        <template x-if="row.tiene_marca">
+                                            <span class="db-badge text-blue-700 border-blue-700 bg-blue-50" title="MARCA REGISTRADA">™️</span>
+                                        </template>
+                                        <template x-if="row.tiene_patente">
+                                            <span class="db-badge text-purple-700 border-purple-700 bg-purple-50" title="PATENTE REGISTRADA">🔬</span>
                                         </template>
                                     </div>
                                     <div class="text-[10px] text-gray-500 mt-1 uppercase tracking-tight">FANTASIA: <span class="font-bold text-gray-700" x-text="row.nombre_fantasia || '-'"></span></div>
-                                    <div class="mt-2"><span class="db-badge text-[9px] text-gray-600" x-text="row.giro || '-'"></span></div>
+                                    <div class="mt-1 flex flex-wrap gap-1">
+                                        <span class="db-badge text-[9px] text-gray-600" x-text="(row.giro || '-').substring(0, 40)"></span>
+                                    </div>
                                 </td>
-                                <td class="p-4 align-top text-gray-700">
+                                <td class="p-3 align-top">
+                                    <!-- Score Bar -->
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <div class="flex-1 h-2 bg-gray-200 border border-gray-400">
+                                            <div class="h-full transition-all" :style="`width: ${row.score_completitud || 0}%`" :class="(row.score_completitud || 0) >= 60 ? 'bg-green-500' : ((row.score_completitud || 0) >= 30 ? 'bg-yellow-500' : 'bg-red-500')"></div>
+                                        </div>
+                                        <span class="text-[10px] font-bold font-mono w-8" x-text="`${row.score_completitud || 0}%`"></span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        <template x-if="row.dominio_web">
+                                            <span class="db-badge text-[8px] text-green-700 border-green-600 bg-green-50">🌐 DOM</span>
+                                        </template>
+                                        <template x-if="row.email_contacto">
+                                            <span class="db-badge text-[8px] text-blue-700 border-blue-600 bg-blue-50">@ MAIL</span>
+                                        </template>
+                                        <template x-if="row.representante_legal">
+                                            <span class="db-badge text-[8px] text-gray-700 border-gray-600 bg-gray-50">👤 REP</span>
+                                        </template>
+                                        <template x-if="row.telefono">
+                                            <span class="db-badge text-[8px] text-orange-700 border-orange-600 bg-orange-50">📞 TEL</span>
+                                        </template>
+                                    </div>
+                                </td>
+                                <td class="p-3 align-top text-gray-700">
                                     <div class="flex flex-col">
                                         <span class="font-bold text-xs" x-text="row.comuna || '-'"></span>
                                         <span class="text-[10px] text-gray-400 mt-0.5" x-text="`REG_${row.region || '-'}`"></span>
                                     </div>
                                 </td>
-                                <td class="p-4 align-top">
+                                <td class="p-3 align-top">
                                     <div class="flex flex-col gap-1.5">
                                         <template x-if="row.email_contacto">
-                                            <div class="text-xs text-gray-700 flex items-center gap-2">
-                                                <span class="text-gray-400 font-bold">@</span>
-                                                <span x-text="row.email_contacto"></span>
+                                            <div class="text-xs text-gray-700 flex items-center gap-1.5">
+                                                <span class="text-gray-400 font-bold text-[10px]">@</span>
+                                                <a :href="`mailto:${row.email_contacto}`" class="hover:text-secondary hover:underline truncate max-w-[180px]" x-text="row.email_contacto"></a>
                                             </div>
                                         </template>
                                         <template x-if="row.dominio_web">
-                                            <div class="text-xs">
-                                                <a :href="`http://${row.dominio_web}`" target="_blank" class="text-secondary hover:underline flex items-center gap-2 font-bold">
-                                                    <span class="text-gray-400">WWW</span>
-                                                    <span x-text="row.dominio_web"></span>
-                                                </a>
+                                            <div class="text-xs flex items-center gap-1.5">
+                                                <span class="text-gray-400 font-bold text-[10px]">WWW</span>
+                                                <a :href="`http://${row.dominio_web}`" target="_blank" class="text-secondary hover:underline font-bold truncate max-w-[180px]" x-text="row.dominio_web"></a>
+                                                <span class="text-[8px] text-gray-400" x-text="row.dominio_web_fuente ? `[${row.dominio_web_fuente}]` : ''"></span>
                                             </div>
                                         </template>
                                         <template x-if="row.representante_legal">
-                                            <div class="text-xs text-gray-700 flex items-center gap-2 mt-1">
-                                                <span class="text-gray-400 font-bold">REP:</span>
-                                                <span class="font-bold uppercase" x-text="row.representante_legal"></span>
+                                            <div class="text-xs text-gray-700 flex items-center gap-1.5">
+                                                <span class="text-gray-400 font-bold text-[10px]">REP</span>
+                                                <span class="font-bold uppercase truncate max-w-[180px]" x-text="row.representante_legal"></span>
+                                            </div>
+                                        </template>
+                                        <template x-if="row.telefono">
+                                            <div class="text-xs text-gray-700 flex items-center gap-1.5">
+                                                <span class="text-gray-400 font-bold text-[10px]">TEL</span>
+                                                <a :href="`tel:${row.telefono}`" class="hover:text-secondary" x-text="row.telefono"></a>
                                             </div>
                                         </template>
                                         <!-- Real-time Sync Button -->
-                                        <div class="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-2">
+                                        <div class="mt-1 pt-1 border-t border-gray-100">
                                             <button @click="enrichOne(row.rut)" class="text-[9px] font-bold text-secondary hover:text-primary transition-colors flex items-center gap-1 uppercase w-max">
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                                                API_SYNC_ENRICH
-                                            </button>
-                                            <button @click="openDashboard(row)" class="text-[9px] font-bold text-gray-900 bg-primary/20 hover:bg-primary px-2 py-1 transition-colors flex items-center gap-1 uppercase w-max border border-primaryDark">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                                                OPEN_RADAR
+                                                API_SYNC
                                             </button>
                                         </div>
                                     </div>
@@ -330,30 +380,54 @@
             <h2 class="text-2xl font-black mb-8 flex items-center gap-3 font-mono uppercase italic border-l-8 border-primary pl-4">
                 Fuentes de Información Oficial
             </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="db-panel p-6 source-grid">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div class="db-panel p-5 source-grid">
                     <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_01</div>
-                    <h3 class="font-black text-xl mb-2 font-mono">SII_CHILE</h3>
-                    <p class="text-sm text-gray-600 mb-4 font-mono leading-tight">Servicio de Impuestos Internos: Registros tributarios masivos y giros comerciales actualizados.</p>
-                    <div class="db-badge inline-block">DATA_OFFICIAL</div>
+                    <h3 class="font-black text-lg mb-1 font-mono">SII / REYS</h3>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Registro tributario y constituciones. Esqueleto base de la base de datos.</p>
+                    <div class="db-badge inline-block text-[10px]">DATA_OFFICIAL</div>
                 </div>
-                <div class="db-panel p-6 source-grid">
+                <div class="db-panel p-5 source-grid">
                     <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_02</div>
-                    <h3 class="font-black text-xl mb-2 font-mono">CHILECOMPRA</h3>
-                    <p class="text-sm text-gray-600 mb-4 font-mono leading-tight">Órdenes de compra históricas y vigentes (OCDS). Extracción de contactos comerciales de proveedores.</p>
-                    <div class="db-badge inline-block">DATA_B2B_ENRICHED</div>
+                    <h3 class="font-black text-lg mb-1 font-mono">CHILECOMPRA</h3>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Órdenes de compra OCDS masivas. Contactos comerciales y historial transaccional.</p>
+                    <div class="db-badge inline-block text-[10px]">DATA_B2B</div>
                 </div>
-                <div class="db-panel p-6 source-grid">
+                <div class="db-panel p-5 source-grid">
                     <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_03</div>
-                    <h3 class="font-black text-xl mb-2 font-mono">REYS_MINECON</h3>
-                    <p class="text-sm text-gray-600 mb-4 font-mono leading-tight">Registro de Empresas y Sociedades (Tu Empresa en un Día). Datos de constitución y representantes.</p>
-                    <div class="db-badge inline-block">DATA_LEGAL</div>
+                    <h3 class="font-black text-lg mb-1 font-mono">NIC_CHILE</h3>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Listados CSV de dominios .cl. Matching fuzzy para descubrimiento de sitios web.</p>
+                    <div class="db-badge inline-block text-[10px]">DATA_DOMAIN</div>
                 </div>
-                <div class="db-panel p-6 source-grid">
+                <div class="db-panel p-5 source-grid">
                     <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_04</div>
-                    <h3 class="font-black text-xl mb-2 font-mono">OPEN_INTEL</h3>
-                    <p class="text-sm text-gray-600 mb-4 font-mono leading-tight">Scraping de dominios web corporativos y validación de servidores de correo MX/SPF.</p>
-                    <div class="db-badge inline-block">DATA_PROPRIETARY</div>
+                    <h3 class="font-black text-lg mb-1 font-mono">INAPI</h3>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Marcas y patentes registradas. Proxy de innovación y madurez empresarial.</p>
+                    <div class="db-badge inline-block text-[10px]">DATA_INNOVATION</div>
+                </div>
+                <div class="db-panel p-5 source-grid">
+                    <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_05</div>
+                    <h3 class="font-black text-lg mb-1 font-mono">DDGS_FALLBACK</h3>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">DuckDuckGo Search gratuito. Descubrimiento de dominios sin API key.</p>
+                    <div class="db-badge inline-block text-[10px]">DATA_OPEN_WEB</div>
+                </div>
+                <div class="db-panel p-5 source-grid">
+                    <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_06</div>
+                    <h3 class="font-black text-lg mb-1 font-mono">MINDICADOR</h3>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Indicadores económicos diarios. UF, dólar, IPC para normalización de montos.</p>
+                    <div class="db-badge inline-block text-[10px]">DATA_MACRO</div>
+                </div>
+                <div class="db-panel p-5 source-grid">
+                    <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_07</div>
+                    <h3 class="font-black text-lg mb-1 font-mono">MERCADO_PUBLICO</h3>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">API oficial para enriquecimiento on-demand de contactos por RUT.</p>
+                    <div class="db-badge inline-block text-[10px]">DATA_LIVE_API</div>
+                </div>
+                <div class="db-panel p-5 source-grid">
+                    <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SCORE</div>
+                    <h3 class="font-black text-lg mb-1 font-mono">COMPLETITUD</h3>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Métrica calculada 0-100% basada en campos poblados. Prioriza enriquecimiento.</p>
+                    <div class="db-badge inline-block text-[10px]">DATA_QUALITY</div>
                 </div>
             </div>
         </div>
@@ -401,6 +475,51 @@
 
                                 <!-- Data State -->
                                 <div x-show="!isDashboardLoading && transactionData" x-cloak>
+                                    
+                                    <!-- Company Intelligence Panel -->
+                                    <div class="mb-6 db-panel p-4">
+                                        <h3 class="text-sm font-black border-b-2 border-gray-900 pb-2 mb-3 flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            INTELIGENCIA_ENRIQUECIDA
+                                        </h3>
+                                        <div class="grid grid-cols-2 gap-3 text-xs">
+                                            <div>
+                                                <span class="text-gray-500 font-bold">SCORE_COMPLETITUD:</span>
+                                                <div class="flex items-center gap-2 mt-1">
+                                                    <div class="flex-1 h-2 bg-gray-200 border border-gray-400">
+                                                        <div class="h-full bg-secondary" :style="`width: ${selectedCompany?.score_completitud || 0}%`"></div>
+                                                    </div>
+                                                    <span class="font-bold font-mono" x-text="`${selectedCompany?.score_completitud || 0}%`"></span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-500 font-bold">PROPIEDAD_INDUSTRIAL:</span>
+                                                <div class="flex gap-2 mt-1">
+                                                    <span class="db-badge text-blue-700 border-blue-600 bg-blue-50" x-show="selectedCompany?.tiene_marca">MARCA ™️</span>
+                                                    <span class="db-badge text-purple-700 border-purple-600 bg-purple-50" x-show="selectedCompany?.tiene_patente">PATENTE 🔬</span>
+                                                    <span class="text-gray-400" x-show="!selectedCompany?.tiene_marca && !selectedCompany?.tiene_patente">Sin registros</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-span-2">
+                                                <span class="text-gray-500 font-bold">ACTIVIDADES_ECONOMICAS:</span>
+                                                <div class="flex flex-wrap gap-1 mt-1">
+                                                    <template x-if="!selectedCompany?.actividades_economicas">
+                                                        <span class="text-gray-400">No disponible</span>
+                                                    </template>
+                                                    <template x-if="selectedCompany?.actividades_economicas">
+                                                        <template x-for="act in (typeof selectedCompany.actividades_economicas === 'string' ? JSON.parse(selectedCompany.actividades_economicas) : selectedCompany.actividades_economicas)" :key="act.codigo">
+                                                            <span class="db-badge text-[9px] text-gray-700 border-gray-400 bg-gray-50" x-text="`${act.codigo}: ${act.descripcion?.substring(0,30) || ''}`"></span>
+                                                        </template>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            <div class="col-span-2">
+                                                <span class="text-gray-500 font-bold">FUENTES_DATO:</span>
+                                                <span class="db-badge text-[9px] text-gray-700 border-gray-400 bg-gray-50" x-text="selectedCompany?.enriquecido_por || 'RES'"></span>
+                                                <span class="db-badge text-[9px] text-gray-700 border-gray-400 bg-gray-50" x-show="selectedCompany?.dominio_web_fuente" x-text="selectedCompany?.dominio_web_fuente"></span>
+                                            </div>
+                                        </div>
+                                    </div>
                                     
                                     <!-- Sync Status & KPIs -->
                                     <div class="mb-6">
@@ -605,19 +724,53 @@
                 searchField: 'razon_social',
                 searchCondition: 'contains',
                 providerOnly: false,
+                searchDebounce: null,
+                
+                // Quick Filters
+                quickFilters: [
+                    {key: 'has_domain', label: 'CON_DOMINIO'},
+                    {key: 'has_email', label: 'CON_EMAIL'},
+                    {key: 'has_marca', label: 'CON_MARCA'},
+                    {key: 'has_patente', label: 'CON_PATENTE'},
+                    {key: 'high_score', label: 'SCORE>60%'},
+                    {key: 'provider', label: 'PROVEEDOR_ESTADO'},
+                ],
+                activeQuickFilters: [],
                 
                 get hasSearchInputDisabled() {
                     return this.searchCondition === 'has_value';
                 },
                 
                 get totalPages() {
-                    return Math.max(1, Math.ceil(this.allResults.length / this.pageSize));
+                    return Math.max(1, Math.ceil(this.filteredResults.length / this.pageSize));
+                },
+                
+                get filteredResults() {
+                    return this.allResults.filter(r => {
+                        for (const filter of this.activeQuickFilters) {
+                            if (filter === 'has_domain' && !r.dominio_web) return false;
+                            if (filter === 'has_email' && !r.email_contacto) return false;
+                            if (filter === 'has_marca' && !r.tiene_marca) return false;
+                            if (filter === 'has_patente' && !r.tiene_patente) return false;
+                            if (filter === 'high_score' && (r.score_completitud || 0) < 60) return false;
+                            if (filter === 'provider' && !['CHILECOMPRA_MASIVO','MERCADOPUBLICO_API'].includes(r.enriquecido_por)) return false;
+                        }
+                        return true;
+                    });
                 },
                 
                 get sortedResults() {
-                    return this.allResults.slice().sort((a, b) => {
-                        const valA = (a[this.sortField] || '').toString().toLowerCase();
-                        const valB = (b[this.sortField] || '').toString().toLowerCase();
+                    return this.filteredResults.slice().sort((a, b) => {
+                        let valA = a[this.sortField];
+                        let valB = b[this.sortField];
+                        // Numeric sort for score
+                        if (this.sortField === 'score_completitud') {
+                            valA = parseInt(valA) || 0;
+                            valB = parseInt(valB) || 0;
+                            return this.sortOrder === 'asc' ? valA - valB : valB - valA;
+                        }
+                        valA = (valA || '').toString().toLowerCase();
+                        valB = (valB || '').toString().toLowerCase();
                         if (valA < valB) return this.sortOrder === 'asc' ? -1 : 1;
                         if (valA > valB) return this.sortOrder === 'asc' ? 1 : -1;
                         return 0;
@@ -632,6 +785,15 @@
                 resetPagination() {
                     this.currentPage = 1;
                     this.errorMsg = null;
+                },
+                
+                toggleQuickFilter(key) {
+                    if (this.activeQuickFilters.includes(key)) {
+                        this.activeQuickFilters = this.activeQuickFilters.filter(k => k !== key);
+                    } else {
+                        this.activeQuickFilters.push(key);
+                    }
+                    this.currentPage = 1;
                 },
                 
                 toggleSort(field) {
@@ -706,15 +868,25 @@
                         this.isLoading = false;
                     }
                 },
+                
+                debouncedSearch() {
+                    clearTimeout(this.searchDebounce);
+                    this.searchDebounce = setTimeout(() => {
+                        if (this.searchQuery.trim().length >= 2 || this.searchCondition === 'has_value') {
+                            this.executeSearch();
+                        }
+                    }, 400);
+                },
 
                 // CSV Export Utility
                 downloadCSV() {
                     if (this.allResults.length === 0) return;
                     
-                    const headers = ["RUT", "Razon Social", "Giro", "Region", "Comuna", "Representante", "Email", "Telefono", "Web", "Enriquecido Por"];
+                    const headers = ["RUT", "Razon Social", "Nombre Fantasia", "Giro", "Region", "Comuna", "Representante", "Email", "Telefono", "Web", "Fuente Web", "Score", "Marca", "Patente", "Enriquecido Por"];
                     const rows = this.allResults.map(r => [
                         `"${r.rut}"`,
                         `"${r.razon_social || ''}"`,
+                        `"${r.nombre_fantasia || ''}"`,
                         `"${r.giro || ''}"`,
                         `"${r.region || ''}"`,
                         `"${r.comuna || ''}"`,
@@ -722,6 +894,10 @@
                         `"${r.email_contacto || ''}"`,
                         `"${r.telefono || ''}"`,
                         `"${r.dominio_web || ''}"`,
+                        `"${r.dominio_web_fuente || ''}"`,
+                        `"${r.score_completitud || 0}"`,
+                        `"${r.tiene_marca ? 'SI' : 'NO'}"`,
+                        `"${r.tiene_patente ? 'SI' : 'NO'}"`,
                         `"${r.enriquecido_por || ''}"`
                     ]);
                     
