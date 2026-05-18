@@ -6,7 +6,7 @@ import shutil
 
 # Configuración
 TIPO_REPORTE = "oc-da"  # oc-da = Ordenes de Compra (Datos Abiertos)
-ANIO_INICIO = 2021
+ANIO_INICIO = 2026
 ANIO_FIN = 2026
 TMP_DIR = "/tmp/sarava_downloads"
 
@@ -45,7 +45,7 @@ def download_and_process():
                     print(f"Ejecutando ETL en: {csv_file}")
                     # Llamar al script de enriquecimiento
                     result = subprocess.run(
-                        ["python3", "etl_enriquecimiento.py", csv_file],
+                        ["./venv/bin/python", "etl_enriquecimiento.py", csv_file],
                         capture_output=False, # Permite ver el output en tiempo real en la consola
                         text=True
                     )

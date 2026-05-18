@@ -11,14 +11,11 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#f8c71a',
-                        primaryDark: '#e5b310',
-                        secondary: '#2d86d4',
-                        secondaryDark: '#1a6cb3',
-                        darkText: '#1f2937'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
+                        primary: '#F8C71A',
+                        primaryDark: '#D4A017',
+                        secondary: '#2D86D4',
+                        secondaryDark: '#1E5A9E',
+                        darkText: '#1A1A1A',
                     }
                 }
             }
@@ -66,7 +63,7 @@
 <body class="bg-gray-50 font-sans text-darkText antialiased" x-data="saravaApp()">
     
     <!-- Navbar -->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
+    <header class="bg-white border-b-2 border-gray-900 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center">
                 <img src="logo-saravasales-horizontal.webp" alt="Saravá Sales" class="h-10 w-auto">
@@ -83,11 +80,14 @@
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         
-        <div class="text-center mb-12">
-            <h1 class="text-4xl md:text-5xl font-extrabold text-darkText mb-4 tracking-tight">Inteligencia de Datos B2B</h1>
-            <p class="text-lg text-gray-600 max-w-2xl mx-auto">Enriquece tu prospección extrayendo información oficial de empresas chilenas en tiempo real. Dominios, representantes y contactos verificados.</p>
+        <!-- Hero Section -->
+        <div class="text-center mb-16">
+            <h1 class="text-4xl md:text-6xl font-black mb-4 tracking-tighter uppercase italic">
+                Data Intel <span class="text-secondary">Terminal</span>
+            </h1>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">Enriquece tu prospección extrayendo información oficial y comercial de alta precisión en tiempo real.</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
@@ -143,9 +143,14 @@
                         </div>
                     </div>
 
-                    <div class="relative mb-6">
+                    <div class="relative mb-4">
                         <input type="text" x-model="searchQuery" @keyup.enter="executeSearch" :disabled="hasSearchInputDisabled" :placeholder="hasSearchInputDisabled ? 'NULL_PARAM' : 'SEARCH_STRING...'" :class="{'bg-gray-100 opacity-70': hasSearchInputDisabled}" class="w-full p-4 pl-12 border-2 border-gray-200 rounded-none focus:ring-0 focus:border-primary outline-none transition-all font-mono text-sm">
                         <svg class="w-5 h-5 absolute left-4 top-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    
+                    <div class="mb-6 flex items-center gap-2">
+                        <input type="checkbox" id="providerOnly" x-model="providerOnly" class="w-4 h-4 text-primary bg-gray-100 border-2 border-gray-300 rounded-none focus:ring-primary focus:ring-2 cursor-pointer">
+                        <label for="providerOnly" class="text-[10px] font-bold text-gray-700 uppercase font-mono cursor-pointer select-none border-b border-dashed border-gray-400">ONLY_STATE_SUPPLIERS (B2B)</label>
                     </div>
                     
                     <div class="mt-auto">
@@ -160,13 +165,9 @@
 
         <!-- Error Message -->
         <div x-show="errorMsg" x-cloak class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
-                </div>
-                <div class="ml-3">
-                    <p class="text-sm text-red-700 font-medium" x-text="errorMsg"></p>
-                </div>
+            <div class="flex items-center">
+                <svg class="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>
+                <p class="text-sm text-red-700 font-bold font-mono" x-text="`ERROR: ${errorMsg}`"></p>
             </div>
         </div>
 
@@ -174,9 +175,16 @@
         <div class="db-panel flex flex-col mb-16">
             <!-- Table Toolbar -->
             <div class="db-header justify-between">
-                <div class="text-sm flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full" :class="allResults.length > 0 ? 'bg-green-500' : 'bg-gray-400'"></div>
-                    [DB_RECORDS_COUNT]: <span class="text-secondary" x-text="allResults.length"></span>
+                <div class="text-sm flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full" :class="allResults.length > 0 ? 'bg-green-500' : 'bg-gray-400'"></div>
+                        [DB_RECORDS_COUNT]: <span class="text-secondary" x-text="allResults.length"></span>
+                    </div>
+                    <!-- CSV Download -->
+                    <button @click="downloadCSV" :disabled="allResults.length === 0" class="db-badge bg-green-50 text-green-700 border-green-700 hover:bg-green-100 transition-colors disabled:opacity-50 flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        DOWNLOAD_CSV
+                    </button>
                 </div>
                 
                 <div class="flex items-center gap-4">
@@ -235,7 +243,7 @@
                     <tbody class="divide-y-2 divide-gray-100 relative">
                         <!-- Loading Overlay -->
                         <tr x-show="isLoading" x-cloak class="absolute inset-0 bg-white/80 z-10 flex items-center justify-center backdrop-blur-[1px]">
-                            <td>
+                            <td colspan="4">
                                 <div class="flex flex-col items-center p-8">
                                     <svg class="animate-spin h-8 w-8 text-secondary mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                     <span class="text-secondary font-bold animate-pulse font-mono">[FETCHING_RECORDS]</span>
@@ -297,6 +305,17 @@
                                                 <span class="font-bold uppercase" x-text="row.representante_legal"></span>
                                             </div>
                                         </template>
+                                        <!-- Real-time Sync Button -->
+                                        <div class="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-2">
+                                            <button @click="enrichOne(row.rut)" class="text-[9px] font-bold text-secondary hover:text-primary transition-colors flex items-center gap-1 uppercase w-max">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                                API_SYNC_ENRICH
+                                            </button>
+                                            <button @click="openDashboard(row)" class="text-[9px] font-bold text-gray-900 bg-primary/20 hover:bg-primary px-2 py-1 transition-colors flex items-center gap-1 uppercase w-max border border-primaryDark">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                                                OPEN_RADAR
+                                            </button>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -338,6 +357,218 @@
                 </div>
             </div>
         </div>
+
+        <!-- Slide-over Dashboard -->
+        <div x-show="isDashboardOpen" x-cloak class="fixed inset-0 overflow-hidden z-[100]" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+            <div class="absolute inset-0 overflow-hidden">
+                <!-- Background overlay -->
+                <div x-show="isDashboardOpen" x-transition.opacity class="absolute inset-0 bg-gray-900 bg-opacity-75 transition-opacity" aria-hidden="true" @click="isDashboardOpen = false"></div>
+
+                <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
+                    <!-- Slide-over panel -->
+                    <div x-show="isDashboardOpen" 
+                         x-transition:enter="transform transition ease-in-out duration-300 sm:duration-500" 
+                         x-transition:enter-start="translate-x-full" 
+                         x-transition:enter-end="translate-x-0" 
+                         x-transition:leave="transform transition ease-in-out duration-300 sm:duration-500" 
+                         x-transition:leave-start="translate-x-0" 
+                         x-transition:leave-end="translate-x-full" 
+                         class="pointer-events-auto w-screen max-w-2xl">
+                        
+                        <div class="flex h-full flex-col overflow-y-scroll bg-white shadow-2xl border-l-4 border-gray-900 font-mono">
+                            <!-- Header -->
+                            <div class="bg-gray-50 px-4 py-6 sm:px-6 border-b-2 border-gray-900 sticky top-0 z-10 flex items-center justify-between">
+                                <div>
+                                    <h2 class="text-xl font-black text-gray-900 uppercase tracking-tight" id="slide-over-title" x-text="selectedCompany?.razon_social || 'Loading...'"></h2>
+                                    <p class="text-sm text-gray-500 mt-1" x-text="`RUT: ${selectedCompany?.rut || ''}`"></p>
+                                </div>
+                                <div class="ml-3 flex h-7 items-center">
+                                    <button type="button" class="bg-white text-gray-400 hover:text-gray-900 border-2 border-gray-900 p-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none" @click="isDashboardOpen = false">
+                                        <span class="sr-only">Close panel</span>
+                                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Content -->
+                            <div class="relative flex-1 px-4 py-6 sm:px-6">
+                                
+                                <!-- Loading State -->
+                                <div x-show="isDashboardLoading" class="flex flex-col items-center justify-center h-64">
+                                    <svg class="animate-spin h-10 w-10 text-secondary mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    <p class="text-sm font-bold animate-pulse">FETCHING_TRANSACTIONAL_HISTORY...</p>
+                                </div>
+
+                                <!-- Data State -->
+                                <div x-show="!isDashboardLoading && transactionData" x-cloak>
+                                    
+                                    <!-- Sync Status & KPIs -->
+                                    <div class="mb-6">
+                                        <div class="flex items-center gap-2 text-xs mb-4">
+                                            <span class="font-bold text-gray-500">CACHE_STATUS:</span>
+                                            <span class="db-badge bg-blue-50 text-blue-700" x-text="transactionData?.historial_last_sync ? 'SYNCED' : 'LIVE'"></span>
+                                            <span class="text-gray-400" x-text="transactionData?.historial_last_sync || 'Just now'"></span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div class="db-panel p-4 text-center">
+                                                <div class="text-3xl font-black text-secondary" x-text="transactionData?.ordenes_compra?.length || 0"></div>
+                                                <div class="text-[10px] font-bold text-gray-500 uppercase">Órdenes (Top 50)</div>
+                                            </div>
+                                            <div class="db-panel p-4 text-center">
+                                                <div class="text-3xl font-black text-primaryDark" x-text="transactionData?.licitaciones?.length || 0"></div>
+                                                <div class="text-[10px] font-bold text-gray-500 uppercase">Licitaciones (Top 50)</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Purchase Orders -->
+                                    <div class="mb-8">
+                                        <h3 class="text-lg font-black border-b-2 border-gray-900 pb-2 mb-4 flex items-center gap-2">
+                                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            Órdenes de Compra (Últimas 50)
+                                        </h3>
+                                        
+                                        <div x-show="transactionData?.ordenes_compra?.length === 0" class="p-4 bg-gray-50 text-gray-500 text-sm text-center border-2 border-gray-200 border-dashed">
+                                            NO_RECORDS_FOUND
+                                        </div>
+
+                                        <div x-show="transactionData?.ordenes_compra?.length > 0" class="overflow-x-auto border-2 border-gray-900">
+                                            <table class="w-full text-left text-xs">
+                                                <thead class="bg-gray-100 border-b-2 border-gray-900">
+                                                    <tr>
+                                                        <th class="p-2 border-r-2 border-gray-900">CODIGO</th>
+                                                        <th class="p-2 border-r-2 border-gray-900">NOMBRE</th>
+                                                        <th class="p-2">ESTADO</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-gray-200">
+                                                    <template x-for="oc in transactionData?.ordenes_compra" :key="oc.codigo">
+                                                        <template x-if="true">
+                                                            <tr class="hover:bg-gray-50 cursor-pointer" @click="toggleOCDetails(oc.codigo)">
+                                                                <td class="p-2 border-r-2 border-gray-200 font-bold text-secondary flex justify-between items-center">
+                                                                    <span x-text="oc.codigo"></span>
+                                                                    <svg class="w-3 h-3 text-gray-400" :class="expandedRowOC === oc.codigo ? 'transform rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                                </td>
+                                                                <td class="p-2 border-r-2 border-gray-200 truncate max-w-[200px]" :title="oc.nombre" x-text="oc.nombre"></td>
+                                                                <td class="p-2">
+                                                                    <span class="px-1.5 py-0.5 border border-gray-300 text-[10px]" x-text="oc.estado || oc.codigo_estado"></span>
+                                                                </td>
+                                                            </tr>
+                                                        </template>
+                                                    </template>
+                                                    <template x-for="oc in transactionData?.ordenes_compra" :key="'det_'+oc.codigo">
+                                                        <tr x-show="expandedRowOC === oc.codigo" class="bg-gray-50">
+                                                            <td colspan="3" class="p-4 border-b-2 border-gray-900 shadow-inner">
+                                                                <div x-show="isLoadingDeepOC" class="text-center text-secondary py-2 font-bold animate-pulse">FETCHING_DEEP_DATA...</div>
+                                                                <div x-show="!isLoadingDeepOC && expandedDataOC">
+                                                                    <div class="grid grid-cols-2 gap-4 text-xs">
+                                                                        <div>
+                                                                            <p class="text-gray-500 font-bold">Monto Total:</p>
+                                                                            <p class="text-lg font-black" x-text="expandedDataOC.MontoTotalOC_PesosChilenos ? `$${Number(expandedDataOC.MontoTotalOC_PesosChilenos).toLocaleString('es-CL')}` : 'N/A'"></p>
+                                                                        </div>
+                                                                        <div>
+                                                                            <p class="text-gray-500 font-bold">Fechas:</p>
+                                                                            <p>Envío: <span x-text="(expandedDataOC.FechaEnvio || '').split('T')[0]"></span></p>
+                                                                            <p>Aceptación: <span x-text="(expandedDataOC.FechaAceptacion || '').split('T')[0]"></span></p>
+                                                                        </div>
+                                                                        <div class="col-span-2">
+                                                                            <p class="text-gray-500 font-bold">Comprador:</p>
+                                                                            <p x-text="expandedDataOC.Comprador?.NombreOrganismo || 'N/A'"></p>
+                                                                            <p class="text-gray-400" x-text="expandedDataOC.Comprador?.RutUnidad || ''"></p>
+                                                                        </div>
+                                                                        <div class="col-span-2">
+                                                                            <p class="text-gray-500 font-bold">Descripción / Observaciones:</p>
+                                                                            <p class="whitespace-pre-wrap break-words" x-text="expandedDataOC.Descripcion || 'Sin descripción'"></p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    </template>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Licitaciones -->
+                                    <div>
+                                        <h3 class="text-lg font-black border-b-2 border-gray-900 pb-2 mb-4 flex items-center gap-2">
+                                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                            Licitaciones (Últimas 50)
+                                        </h3>
+                                        
+                                        <div x-show="transactionData?.licitaciones?.length === 0" class="p-4 bg-gray-50 text-gray-500 text-sm text-center border-2 border-gray-200 border-dashed">
+                                            NO_RECORDS_FOUND
+                                        </div>
+
+                                        <div x-show="transactionData?.licitaciones?.length > 0" class="overflow-x-auto border-2 border-gray-900">
+                                            <table class="w-full text-left text-xs">
+                                                <thead class="bg-gray-100 border-b-2 border-gray-900">
+                                                    <tr>
+                                                        <th class="p-2 border-r-2 border-gray-900">CODIGO</th>
+                                                        <th class="p-2 border-r-2 border-gray-900">NOMBRE</th>
+                                                        <th class="p-2 border-r-2 border-gray-900">CIERRE</th>
+                                                        <th class="p-2">ESTADO</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-gray-200">
+                                                    <template x-for="lic in transactionData?.licitaciones" :key="lic.codigo_externo">
+                                                        <template x-if="true">
+                                                            <tr class="hover:bg-gray-50 cursor-pointer" @click="toggleLicDetails(lic.codigo_externo)">
+                                                                <td class="p-2 border-r-2 border-gray-200 font-bold text-secondary flex justify-between items-center">
+                                                                    <span x-text="lic.codigo_externo"></span>
+                                                                    <svg class="w-3 h-3 text-gray-400" :class="expandedRowLic === lic.codigo_externo ? 'transform rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                                </td>
+                                                                <td class="p-2 border-r-2 border-gray-200 truncate max-w-[150px]" :title="lic.nombre" x-text="lic.nombre"></td>
+                                                                <td class="p-2 border-r-2 border-gray-200 whitespace-nowrap" x-text="(lic.fecha_cierre || '').split(' ')[0]"></td>
+                                                                <td class="p-2">
+                                                                    <span class="px-1.5 py-0.5 border border-gray-300 text-[10px]" x-text="lic.estado || lic.codigo_estado"></span>
+                                                                </td>
+                                                            </tr>
+                                                        </template>
+                                                    </template>
+                                                    <template x-for="lic in transactionData?.licitaciones" :key="'det_'+lic.codigo_externo">
+                                                        <tr x-show="expandedRowLic === lic.codigo_externo" class="bg-gray-50">
+                                                            <td colspan="4" class="p-4 border-b-2 border-gray-900 shadow-inner">
+                                                                <div x-show="isLoadingDeepLic" class="text-center text-secondary py-2 font-bold animate-pulse">FETCHING_DEEP_DATA...</div>
+                                                                <div x-show="!isLoadingDeepLic && expandedDataLic">
+                                                                    <div class="grid grid-cols-2 gap-4 text-xs">
+                                                                        <div>
+                                                                            <p class="text-gray-500 font-bold">Monto Estimado:</p>
+                                                                            <p class="text-lg font-black" x-text="expandedDataLic.Estimacion === 1 ? 'Presupuesto Disponible' : (expandedDataLic.MontoEstimado ? `$${Number(expandedDataLic.MontoEstimado).toLocaleString('es-CL')}` : 'No Informado')"></p>
+                                                                        </div>
+                                                                        <div>
+                                                                            <p class="text-gray-500 font-bold">Fechas:</p>
+                                                                            <p>Publicación: <span x-text="(expandedDataLic.Fechas?.FechaPubRespuestas || expandedDataLic.Fechas?.FechaCreacion || '').split('T')[0]"></span></p>
+                                                                            <p>Adjudicación: <span x-text="(expandedDataLic.Fechas?.FechaAdjudicacion || '').split('T')[0]"></span></p>
+                                                                        </div>
+                                                                        <div class="col-span-2">
+                                                                            <p class="text-gray-500 font-bold">Comprador:</p>
+                                                                            <p x-text="expandedDataLic.Comprador?.NombreOrganismo || 'N/A'"></p>
+                                                                            <p class="text-gray-400" x-text="expandedDataLic.Comprador?.RutUnidad || ''"></p>
+                                                                        </div>
+                                                                        <div class="col-span-2">
+                                                                            <p class="text-gray-500 font-bold">Descripción:</p>
+                                                                            <p class="whitespace-pre-wrap break-words" x-text="expandedDataLic.Descripcion || 'Sin descripción'"></p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    </template>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <script>
@@ -352,6 +583,20 @@
                 isLoading: false,
                 errorMsg: null,
                 
+                // Dashboard State
+                isDashboardOpen: false,
+                selectedCompany: null,
+                transactionData: null,
+                isDashboardLoading: false,
+                
+                // Deep Data State
+                expandedRowOC: null,
+                expandedDataOC: null,
+                isLoadingDeepOC: false,
+                expandedRowLic: null,
+                expandedDataLic: null,
+                isLoadingDeepLic: false,
+                
                 // Batch
                 batchInput: '',
                 
@@ -359,6 +604,7 @@
                 searchQuery: '',
                 searchField: 'razon_social',
                 searchCondition: 'contains',
+                providerOnly: false,
                 
                 get hasSearchInputDisabled() {
                     return this.searchCondition === 'has_value';
@@ -408,7 +654,7 @@
                     this.isLoading = true;
                     this.resetPagination();
                     try {
-                        const response = await fetch(`${this.apiBase}/empresas/all?limit=500`);
+                        const response = await fetch(`${this.apiBase}/empresas/all?limit=500&provider_only=${this.providerOnly}`);
                         if (!response.ok) throw new Error('Error al conectar con el servidor');
                         this.allResults = await response.json();
                     } catch (err) {
@@ -447,7 +693,7 @@
                     this.resetPagination();
                     
                     try {
-                        let url = `${this.apiBase}/search?field=${this.searchField}&condition=${this.searchCondition}`;
+                        let url = `${this.apiBase}/search?field=${this.searchField}&condition=${this.searchCondition}&provider_only=${this.providerOnly}`;
                         if (!this.hasSearchInputDisabled) {
                             url += `&q=${encodeURIComponent(this.searchQuery.trim())}`;
                         }
@@ -458,6 +704,116 @@
                         this.errorMsg = err.message;
                     } finally {
                         this.isLoading = false;
+                    }
+                },
+
+                // CSV Export Utility
+                downloadCSV() {
+                    if (this.allResults.length === 0) return;
+                    
+                    const headers = ["RUT", "Razon Social", "Giro", "Region", "Comuna", "Representante", "Email", "Telefono", "Web", "Enriquecido Por"];
+                    const rows = this.allResults.map(r => [
+                        `"${r.rut}"`,
+                        `"${r.razon_social || ''}"`,
+                        `"${r.giro || ''}"`,
+                        `"${r.region || ''}"`,
+                        `"${r.comuna || ''}"`,
+                        `"${r.representante_legal || ''}"`,
+                        `"${r.email_contacto || ''}"`,
+                        `"${r.telefono || ''}"`,
+                        `"${r.dominio_web || ''}"`,
+                        `"${r.enriquecido_por || ''}"`
+                    ]);
+                    
+                    let csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", `sarava_export_${new Date().toISOString().slice(0,10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                },
+
+                async enrichOne(rut) {
+                    this.isLoading = true;
+                    try {
+                        const resp = await fetch(`${this.apiBase}/empresa?rut=${rut}&enrich=true`);
+                        if (!resp.ok) throw new Error("Error al enriquecer via API");
+                        const updatedData = await resp.json();
+                        
+                        // Actualizar en la lista local
+                        const idx = this.allResults.findIndex(r => r.rut === rut);
+                        if (idx !== -1) {
+                            this.allResults[idx] = updatedData;
+                        }
+                        alert("Registro enriquecido exitosamente con datos en tiempo real de Mercado Público.");
+                    } catch (err) {
+                        alert(err.message);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async openDashboard(company) {
+                    this.selectedCompany = company;
+                    this.isDashboardOpen = true;
+                    this.isDashboardLoading = true;
+                    this.transactionData = null;
+                    
+                    try {
+                        const response = await fetch(`${this.apiBase}/empresa/${company.rut}/transacciones`);
+                        if (!response.ok) throw new Error('Error fetching transaction history');
+                        this.transactionData = await response.json();
+                    } catch (err) {
+                        alert("Error cargando historial: " + err.message);
+                    } finally {
+                        this.isDashboardLoading = false;
+                    }
+                },
+
+                async toggleOCDetails(codigo) {
+                    if (this.expandedRowOC === codigo) {
+                        this.expandedRowOC = null;
+                        return;
+                    }
+                    this.expandedRowOC = codigo;
+                    this.isLoadingDeepOC = true;
+                    this.expandedDataOC = null;
+                    try {
+                        const response = await fetch(`${this.apiBase}/mercado-publico/oc/${codigo}`);
+                        if (!response.ok) throw new Error('Error fetching OC details');
+                        const data = await response.json();
+                        if (data.Listado && data.Listado.length > 0) {
+                            this.expandedDataOC = data.Listado[0];
+                        }
+                    } catch (err) {
+                        console.error(err);
+                    } finally {
+                        this.isLoadingDeepOC = false;
+                    }
+                },
+
+                async toggleLicDetails(codigo) {
+                    if (this.expandedRowLic === codigo) {
+                        this.expandedRowLic = null;
+                        return;
+                    }
+                    this.expandedRowLic = codigo;
+                    this.isLoadingDeepLic = true;
+                    this.expandedDataLic = null;
+                    try {
+                        const response = await fetch(`${this.apiBase}/mercado-publico/licitacion/${codigo}`);
+                        if (!response.ok) throw new Error('Error fetching Tender details');
+                        const data = await response.json();
+                        if (data.Listado && data.Listado.length > 0) {
+                            this.expandedDataLic = data.Listado[0];
+                        }
+                    } catch (err) {
+                        console.error(err);
+                    } finally {
+                        this.isLoadingDeepLic = false;
                     }
                 }
             }));
