@@ -49,6 +49,25 @@ El sistema cuenta con flujos principales diseñados para procesar grandes volúm
     *   **Ordenamiento y Paginación:** Tabla de resultados reactiva con control de registros por página y ordenamiento instantáneo (asc/desc) por columna.
     *   Indicadores visuales ("VERIFIED") para empresas con data enriquecida.
 
+### 6. Sistema de Sincronización Inteligente (Smart Sync)
+Para maximizar la eficiencia y calidad del dato, el sistema implementa una capa de control avanzada:
+*   **Detección por Metadatos (SII):** Consulta la API CKAN de `datos.gob.cl` para verificar `metadata_modified` antes de descargar archivos masivos.
+*   **Verificación HEAD (ChileCompra):** Realiza peticiones `HTTP HEAD` para validar `Content-Length` y `Last-Modified`. Solo descarga si detecta cambios reales, optimizando el uso de red.
+*   **Gestión de Obsolescencia (Mark-and-Sweep):** Detección automática de "Empresas Fantasma" y marcado como `REMOVED_FROM_SOURCE` basándose en un índice de `last_seen_at`.
+*   **Trazabilidad Total:** Tabla `sync_status` que registra hashes MD5, tamaños y estados de ejecución de cada pipeline.
+
+### 7. Enriquecimiento On-Demand (Mercado Público API)
+Integración con la API oficial de ChileCompra para obtener datos de contacto comerciales:
+*   **Enriquecimiento en Caliente:** La API (`/api/v1/empresa`) detecta si a un registro le faltan datos de contacto y consulta automáticamente a Mercado Público mediante un mecanismo sincrónico `Await with Timeout` (4 segundos).
+*   **Datos de Ventas:** Extrae contactos de decisión (Gerentes/Dueños) directamente de las Órdenes de Compra.
+*   **Batch Processing Worker:** Script `etl_hot_worker.py` para enriquecer masivamente RUTs en segundo plano respetando límites de peticiones.
+
+### 8. Hub de Inteligencia Exhaustivo (Lago Transaccional)
+Transformación de la plataforma en un radar de mercado integral con caché relacional:
+*   **Historial Completo:** Tablas analíticas `ordenes_compra` y `licitaciones`, separando monedas y estados para análisis.
+*   **Dashboard Slide-over:** Interfaz de usuario que permite hacer clic en "OPEN_RADAR" para desplegar la huella transaccional de una empresa al instante.
+*   **Caché Inteligente:** Descarga del historial completo solo si han pasado más de 7 días (`historial_last_sync`), protegiendo el Rate Limit y garantizando velocidad de carga.
+
 ---
 
 ## Guía de Configuración y Desarrollo
@@ -108,3 +127,24 @@ python3 -m http.server 3000
 *   **Normalización de RUTs:** El proyecto utiliza una lógica estricta de limpieza (quita puntos, espacios y asegura el guion antes del DV) tanto en el ETL como en la API para garantizar que los cruces de datos sean exitosos.
 *   **Buscador Global:** Si el buscador da errores de "Syntax", verifica la función de sanitización en `api_sarava.py`. Actualmente filtra caracteres especiales para evitar colisiones con el modo `BOOLEAN` de MySQL.
 *   **Fuentes de Datos:** Si `datos.gob.cl` cambia su estructura, el método `get_sii_resource_url` en `etl_sarava.py` es el punto de entrada para ajustar el scraping ético o la consulta a la API CKAN.
+
+---
+
+## Anexo: Retos Técnicos y Limitaciones de Datos Abiertos (2024-2026)
+
+Durante la investigación, diseño e implementación de este Hub de Inteligencia, nos enfrentamos a barreras críticas impuestas por las plataformas gubernamentales que moldearon la arquitectura final de Saravá:
+
+1. **Privacidad Extrema en OCDS (Pérdida de Correos Masivos):** 
+   Los archivos masivos descargables de Órdenes de Compra de ChileCompra (2024 en adelante) han sido sometidos a fuertes políticas de anonimización. Se eliminaron columnas vitales para la prospección como `EmailContacto`, `FonoContacto` y `NombreContacto`. La plataforma superó esto migrando a una estrategia de *Enriquecimiento Sincrónico (On-Demand)* consultando transacciones unitarias vía API.
+
+2. **Supresión del RUT Proveedor en Lotes:** 
+   Los mismos archivos masivos reemplazaron la columna `RutProveedor` por códigos internos o la anidaron bajo `RutSucursal`, rompiendo los cruces directos en bases de datos. Saravá debió implementar un parser forense capaz de escanear mediante `regex` variaciones de columnas para lograr hacer el *match* con nuestra base de datos madre.
+
+3. **Inexistencia de Endpoints Batch en la API Pública:** 
+   La API oficial de Mercado Público es potente pero no permite descargar el directorio completo de proveedores de una sola vez. Dado que una consulta secuencial de 73.000 empresas tomaría semanas y arriesgaría el bloqueo del Ticket, se implementó el modelo *Just-in-Time*: el sistema extrae la inteligencia solo cuando un usuario u orquestador externo la requiere.
+
+4. **La "Ilusión" de los ETags:** 
+   Depender de las cabeceras HTTP estándar (`ETag`, `Last-Modified`) para detectar cambios en archivos estatales probó ser inútil debido a balanceadores de carga mal configurados que alteran las fechas sin modificar el archivo subyacente. La solución arquitectónica (Smart Sync) fue implementar un análisis profundo que extrae la fecha administrativa interna directamente del JSON de la plataforma CKAN.
+
+5. **El Problema de las Empresas Fantasma:** 
+   En los datasets gubernamentales, las empresas que quiebran o cierran simplemente dejan de aparecer en las listas mensuales, sin ningún "aviso de baja". Para evitar acumular basura, Saravá introdujo el patrón *Mark-and-Sweep*. Cada empresa es "sellada temporalmente" (`last_seen_at`) durante la sincronización maestra; aquellas que no reciben el sello, son marcadas automáticamente como `REMOVED_FROM_SOURCE`.
