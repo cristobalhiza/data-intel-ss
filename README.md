@@ -38,6 +38,9 @@ El sistema cuenta con flujos principales diseñados para procesar grandes volúm
 *   **Enriquecimiento INAPI (Marcas/Patentes):** Descarga datasets XLSX de INAPI desde datos.gob.cl, identifica empresas chilenas por fuzzy matching de nombre contra `razon_social`, y actualiza flags `tiene_marca` / `tiene_patente` con clasificaciones Niza/IPC. Proxy de innovación y madurez empresarial. (*Script: `etl_inapi.py`*)
 *   **Fallback DDGS (Descubrimiento de Dominios):** Para empresas sin dominio web, realiza búsquedas gratuitas vía DuckDuckGo (`ddgs`) usando la razón social, parsea los resultados buscando dominios `.cl`/`.com`, y aplica un filtro de confianza basado en frecuencia de aparición y presencia del nombre en títulos. Gratuito, sin API key. (*Script: `etl_ddgs_fallback.py`*)
 
+#### Utilidades (`mindicador_client.py`)
+Cliente para indicadores económicos diarios de Chile (UF, dólar, euro, IPC, UTM) desde `mindicador.cl`. Con cache TTL y funciones de conversión monetaria para normalizar montos de contratos públicos (CLP ↔ UF ↔ USD).
+
 #### Framework de Pipeline (`pipeline_core.py`)
 Módulo reutilizable que proporciona:
 *   **Rate Limiting:** Control de tasa del lado del cliente (1 req/seg para APIs, 2.5s para scraping).
