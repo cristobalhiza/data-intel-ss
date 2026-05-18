@@ -65,4 +65,16 @@ CREATE TABLE IF NOT EXISTS licitaciones (
     INDEX idx_rut_proveedor (rut_proveedor)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS busquedas_dominio (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    rut VARCHAR(12) NOT NULL,
+    query VARCHAR(255),
+    resultados_json JSON,
+    dominio_encontrado VARCHAR(255),
+    confianza_score DECIMAL(3,2), -- 0.00 - 1.00
+    fecha_busqueda TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_rut (rut),
+    INDEX idx_dominio (dominio_encontrado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 ALTER TABLE empresas_directorio ADD FULLTEXT INDEX IF NOT EXISTS idx_razon_social_fulltext (razon_social);
