@@ -21,10 +21,11 @@ El proyecto sigue una arquitectura de microservicios simplificada, compuesta por
 
 ### 2. Base de Datos (Persistencia)
 *   **Motor:** MySQL / MariaDB.
-*   **Columnas de Enriquecimiento (RevOps):** `representante_legal`, `nombre_fantasia`, `email_contacto`, `telefono`, `dominio_web`, `enriquecido_por`.
+*   **Columnas de Enriquecimiento (RevOps):** `representante_legal`, `nombre_fantasia`, `email_contacto`, `telefono`, `dominio_web`, `dominio_web_fuente`, `actividades_economicas` (JSON), `enriquecido_por`, `score_completitud`.
 *   **Optimización:** 
     *   Índice `PRIMARY KEY` en el campo `rut` para consultas instantáneas.
     *   Índice `FULLTEXT` en `razon_social` para búsquedas semánticas y parciales.
+    *   Índice `idx_dominio_web` para lookups por dominio.
     *   Mecanismo de **UPSERT** y condicionales lógicos para proteger los datos oficiales de sobreescritura externa.
 
 ### 3. Pipelines ETL (Ingesta de Datos)
@@ -32,6 +33,15 @@ El sistema cuenta con flujos principales diseñados para procesar grandes volúm
 *   **Base Oficial (Constituciones):** Extrae datos del "Registro de Empresas y Sociedades" del Ministerio de Economía en `datos.gob.cl`. (*Script: `etl_sarava.py`*)
 *   **Enriquecimiento Comercial (Mercado Público):** Procesa archivos masivos CSV provenientes de **Datos Abiertos ChileCompra** (`datos-abiertos.chilecompra.cl`). Extrae Representante, Email, Teléfono, y procesa automáticamente el dominio web corporativo descartando correos gratuitos. (*Script: `etl_enriquecimiento.py`*)
 *   **Orquestador de Descargas Masivas:** Para ingerir años de transacciones automáticamente, se utiliza el script `automatizar_descargas.py`. Este script se conecta a los Azure Blobs de ChileCompra (`transparenciachc.blob.core.windows.net`), descarga los archivos `.zip` semestrales de un rango de años específico (ej. 2021-2026), los extrae en `/tmp`, procesa los CSVs gigantes con `etl_enriquecimiento.py` y los elimina inmediatamente para **no saturar el disco duro**.
+*   **Enriquecimiento de Dominios (NIC Chile):** Descarga los listados CSV de dominios `.cl` recientes desde NIC Chile (`www.nic.cl/registry/Ultimos.do`) y realiza matching fuzzy contra las razones sociales de la base de datos para inferir dominios web de empresas. Incluye umbral de similitud configurable y modo dry-run. (*Script: `etl_nic_chile.py`*)
+
+#### Framework de Pipeline (`pipeline_core.py`)
+Módulo reutilizable que proporciona:
+*   **Rate Limiting:** Control de tasa del lado del cliente (1 req/seg para APIs, 2.5s para scraping).
+*   **Circuit Breaker:** Desactiva temporalmente fuentes fallidas tras N errores consecutivos, con recuperación automática.
+*   **Retry con Backoff Exponencial:** Reintentos inteligentes ante fallos transitorios (1s, 2s, 4s...).
+*   **Cache Simple en Memoria:** TTL configurable para evitar consultas repetidas.
+*   **Matching Fuzzy:** Normalización de strings y distancia de Levenshtein para matching empresa-dominio.
 
 ### 4. Orquestación Externa y Feedback Loop (API)
 *   **Capa Ultrarrápida:** La API entrega los datos cacheados en milisegundos.
@@ -106,6 +116,17 @@ Para poblar la base de datos con información real de `datos.gob.cl`:
 ```bash
 export SARAVA_DB_PORT="3307" SARAVA_DB_USER="sarava_user" SARAVA_DB_PASS="8977"
 python etl_sarava.py
+```
+
+Para enriquecer dominios web desde NIC Chile (dry-run primero):
+```bash
+export SARAVA_DB_PORT="3307" SARAVA_DB_USER="sarava_user" SARAVA_DB_PASS="8977"
+python etl_nic_chile.py --period 1d --dry-run --threshold 0.72
+```
+
+Para ejecutar el test suite:
+```bash
+pytest tests/ --cov=pipeline_core --cov=etl_nic_chile --cov-report=term-missing
 ```
 
 ### 2. Levantar la API
