@@ -291,4 +291,14 @@ Durante la investigación, diseño e implementación de este Hub de Inteligencia
     *   **Rediseño de UI de Búsqueda Avanzada:** El panel `[MASTER_SEARCH_FILTER]` ahora permite agregar/quitar múltiples filtros dinámicamente. Cada filtro tiene su propio selector de campo, condición y caja de texto, con botones `ADD_FILTER`, `CLEAR_ALL` y eliminación individual (`×`).
     *   **Tests de Regresión:** Se agregaron `test_search_empresas_composite_filters` y `test_search_empresas_composite_filters_has_value` para validar la generación de SQL con parámetros únicos (`f0_term`, `f1_term`, etc.) y la combinación de `has_value` + `contains`.
     *   **Resultado:** **128 tests pasan de manera robusta (`100% verde` real)**.
+*   **Rediseño Completo de UX/UI (Mayo 2026):**
+    *   **Batch Loader Desplegable:** El panel `[QUERY_BATCH_LOADER]` ahora está oculto por defecto y se activa vía un botón toggle `▼ BATCH_MODE`, liberando espacio visual principal.
+    *   **Filtros Compuestos Arriba de la Tabla:** La barra de búsqueda avanzada se movió directamente sobre la tabla de resultados, mostrando filtros activos como chips/badges compactos con botones `+ FILTER` y `CLEAR_ALL`.
+    *   **Panel de Detalles Ampliado:** El slide-over de empresa pasó de `max-w-2xl` a `lg:max-w-5xl` en desktop, aprovechando mejor el espacio horizontal para el historial transaccional.
+    *   **Nombre de Empresa Clickeable:** La razón social en la tabla ahora abre el dashboard al hacer click, además del botón `DETAILS` (antes `RADAR`).
+    *   **Regiones como Dropdown:** En el editor de filtros, al seleccionar campo `region`, el input se convierte en un `<select>` con las 16 regiones de Chile, eliminando errores de tipeo.
+    *   **Columnas Ajustables:** Se implementó un sistema de resize handles en los encabezados de la tabla (`th`), permitiendo arrastrar para ajustar anchos de columna.
+    *   **Layout Compacto:** El hero section se redujo a una barra mínima. La tabla de datos es ahora lo primero visible.
+    *   **Limpieza:** Se eliminó el quick filter `SCORE>60%` y se renombró `FANTASY_NAME` a `TRADE_NAME`. Se eliminaron 3 registros mock de la base de datos.
+    *   **Resultado:** **128 tests pasan de manera robusta (`100% verde` real)**.
 

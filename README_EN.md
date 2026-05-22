@@ -292,3 +292,13 @@ During the research, design, and implementation of this Intelligence Hub, we fac
     *   **Advanced Search UI Redesign:** The `[MASTER_SEARCH_FILTER]` panel now supports adding/removing multiple dynamic filters. Each filter has its own field selector, condition selector, and text input, with `ADD_FILTER`, `CLEAR_ALL`, and individual remove (`×`) buttons.
     *   **Regression Tests:** Added `test_search_empresas_composite_filters` and `test_search_empresas_composite_filters_has_value` to validate SQL generation with unique parameters (`f0_term`, `f1_term`, etc.) and the combination of `has_value` + `contains`.
     *   **Result:** **128 tests passing robustly (`100% green` real)**.
+*   **Complete UX/UI Redesign (May 2026):**
+    *   **Collapsible Batch Loader:** The `[QUERY_BATCH_LOADER]` panel is now hidden by default and toggled via a `▼ BATCH_MODE` button, freeing up primary visual space.
+    *   **Composite Filters Above Table:** The advanced search bar was moved directly above the results table, showing active filters as compact chips/badges with `+ FILTER` and `CLEAR_ALL` buttons.
+    *   **Enlarged Detail Panel:** The company slide-over expanded from `max-w-2xl` to `lg:max-w-5xl` on desktop, making better use of horizontal space for transactional history.
+    *   **Clickable Company Name:** The razón social in the table now opens the dashboard on click, in addition to the `DETAILS` button (formerly `RADAR`).
+    *   **Regions as Dropdown:** In the filter editor, selecting the `region` field transforms the input into a `<select>` with Chile's 16 regions, eliminating typing errors.
+    *   **Resizable Columns:** A resize handle system was implemented on table headers (`th`), allowing drag-to-adjust column widths.
+    *   **Compact Layout:** The hero section was reduced to a minimal bar. The data table is now the first visible element.
+    *   **Cleanup:** Removed the `SCORE>60%` quick filter and renamed `FANTASY_NAME` to `TRADE_NAME`. Deleted 3 mock records from the database.
+    *   **Result:** **128 tests passing robustly (`100% green` real)**.
