@@ -1,7 +1,7 @@
 # Saravá | Inteligencia de Datos de Empresas (Chile)
 
 ## Propósito del Proyecto
-Saravá es una plataforma de inteligencia de datos diseñada para el enriquecimiento masivo de información de empresas chilenas. El objetivo principal es consolidar datos de fuentes abiertas y públicas (como `datos.gob.cl`) en una base de datos local optimizada para consultas de alto rendimiento, permitiendo tanto búsquedas por RUT (individual/masiva) como búsquedas globales por Razón Social.
+Data Intel SS es una plataforma de inteligencia de datos diseñada para el enriquecimiento masivo de información de empresas chilenas. El objetivo principal es consolidar datos de fuentes abiertas y públicas (como `datos.gob.cl`) en una base de datos local optimizada para consultas de alto rendimiento, permitiendo tanto búsquedas por RUT (individual/masiva) como búsquedas globales por Razón Social.
 
 ---
 
