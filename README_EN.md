@@ -1,7 +1,7 @@
 # Saravá | Company Data Intelligence (Chile)
 
 ## Project Purpose
-Saravá is a data intelligence platform designed for the massive enrichment of Chilean company information. The main objective is to consolidate data from open and public sources (such as `datos.gob.cl`) into a highly optimized local database for high-performance querying, allowing both RUT searches (individual/batch) and global searches by Business Name (Razón Social).
+Data Intel SS is a data intelligence platform designed for the massive enrichment of Chilean company information. The main objective is to consolidate data from open and public sources (such as `datos.gob.cl`) into a highly optimized local database for high-performance querying, allowing both RUT searches (individual/batch) and global searches by Business Name (Razón Social).
 
 ---
 
