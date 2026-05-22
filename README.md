@@ -279,4 +279,10 @@ Durante la investigación, diseño e implementación de este Hub de Inteligencia
     *   **Robustecimiento del Filtro has_value:** Se ajustó la condición SQL generada para el filtro `has_value` a fin de ignorar de forma segura marcadores de posición vacíos o compuestos únicamente por guiones (ej. `'-'`), evitando que contaminen los resultados de búsqueda avanzados.
     *   **Pruebas Unitarias y Suite Verde:** Se agregaron pruebas en `tests/test_api_sarava.py` para asegurar que el filtro `has_value` para `nombre_fantasia` funcione según lo diseñado y que la API asigne el nuevo umbral por defecto de `0.75`.
     *   **Resultado:** **126 tests pasan de manera robusta (`100% verde` real)**, ratificando la precisión del filtrado y emparejamiento.
+*   **Corrección de Carga de Actividades Económicas Reales (Mayo 2026):**
+    *   **Nuevo ETL `etl_sii_actividades.py`:** Se creó un pipeline dedicado que descarga la nómina oficial de actividades económicas de personas jurídicas desde el SII (`PUB_NOM_ACTECOS.zip`), procesa ~3.7M de registros de actividades vigentes, y actualiza masivamente `empresas_directorio.giro` y `empresas_directorio.actividades_economicas` (JSON).
+    *   **Separación de Concerns en `etl_sarava.py`:** Se eliminó el mapeo erróneo de `Codigo de sociedad` (tipo legal: SpA, EIRL, SRL) al campo `giro`. Ahora el ETL de constituciones NO sobreescribe el giro, dejando que `etl_sii_actividades.py` cargue el rubro real de cada empresa.
+    *   **Exposición de Actividades en API:** Se agregó `actividades_economicas` al SELECT del endpoint `/api/v1/empresa` en `api_sarava.py`, permitiendo que el frontend acceda al array JSON de actividades.
+    *   **Fallback Visual en Frontend (`index.html`):** El dashboard ahora muestra el campo `giro` como actividad económica cuando no existe el objeto `actividades_economicas` detallado, eliminando el mensaje engañoso de "Not available".
+    *   **Resultado:** **51,324 empresas (69.5% del directorio)** ahora tienen giros/activividades económicas reales provenientes del SII. El suite completo mantiene **126 tests en verde**.
 

@@ -503,13 +503,16 @@
                                             <div class="col-span-2">
                                                 <span class="text-gray-500 font-bold">ECONOMIC_ACTIVITIES:</span>
                                                 <div class="flex flex-wrap gap-1 mt-1">
-                                                    <template x-if="!selectedCompany?.actividades_economicas">
+                                                    <template x-if="!selectedCompany?.actividades_economicas && !selectedCompany?.giro">
                                                         <span class="text-gray-400">Not available</span>
                                                     </template>
                                                     <template x-if="selectedCompany?.actividades_economicas">
                                                         <template x-for="act in (typeof selectedCompany.actividades_economicas === 'string' ? JSON.parse(selectedCompany.actividades_economicas) : selectedCompany.actividades_economicas)" :key="act.codigo">
                                                             <span class="db-badge text-[9px] text-gray-700 border-gray-400 bg-gray-50" x-text="`${act.codigo}: ${act.descripcion?.substring(0,30) || ''}`"></span>
                                                         </template>
+                                                    </template>
+                                                    <template x-if="!selectedCompany?.actividades_economicas && selectedCompany?.giro">
+                                                        <span class="db-badge text-[9px] text-gray-700 border-gray-400 bg-gray-50" x-text="selectedCompany.giro"></span>
                                                     </template>
                                                 </div>
                                             </div>

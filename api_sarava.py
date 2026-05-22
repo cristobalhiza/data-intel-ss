@@ -66,7 +66,8 @@ async def get_empresa(
     
     query = text("""
         SELECT rut, razon_social, giro, region, comuna, 
-               representante_legal, nombre_fantasia, email_contacto, telefono, dominio_web, enriquecido_por 
+               representante_legal, nombre_fantasia, email_contacto, telefono, dominio_web, 
+               actividades_economicas, enriquecido_por 
         FROM empresas_directorio WHERE rut = :rut
     """)
     

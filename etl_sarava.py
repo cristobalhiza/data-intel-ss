@@ -96,7 +96,7 @@ def upsert_to_mysql(df, engine, table_name):
             SELECT rut, razon_social, giro, region, comuna FROM temp_batch
             ON DUPLICATE KEY UPDATE
                 razon_social = VALUES(razon_social),
-                giro = VALUES(giro),
+                giro = COALESCE(NULLIF(TRIM(giro), ''), VALUES(giro)),
                 region = VALUES(region),
                 comuna = VALUES(comuna);
         """)
@@ -145,7 +145,7 @@ def run_etl():
             # Map column names based on the "Registro de Empresas y Sociedades" format
             df_batch['rut'] = chunk.get('RUT', pd.Series(dtype=str)).apply(clean_rut)
             df_batch['razon_social'] = chunk.get('Razon Social', pd.Series(dtype=str)).str.slice(0, 254)
-            df_batch['giro'] = chunk.get('Codigo de sociedad', 'N/A')
+            df_batch['giro'] = None  # El giro real se carga desde etl_sii_actividades.py
             df_batch['region'] = chunk.get('Region Tributaria', 'N/A')
             df_batch['comuna'] = chunk.get('Comuna Tributaria', 'N/A')
 

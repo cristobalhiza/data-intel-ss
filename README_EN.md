@@ -279,3 +279,10 @@ During the research, design, and implementation of this Intelligence Hub, we fac
     *   **Robust has_value Filtering:** Adjusted the generated SQL query for `has_value` to securely ignore empty strings and literal hyphen placeholders (e.g. `'-'`), preventing them from polluting search results.
     *   **Unit Tests:** Added tests in `tests/test_api_sarava.py` to verify that the `has_value` filter for `nombre_fantasia` behaves as expected and that the API respects the new default threshold of `0.75`.
     *   **Result:** **126 tests passing robustly (`100% green`)**, confirming precision in filters and matching.
+*   **Real Economic Activity Data Loading Fix (May 2026):**
+    *   **New ETL `etl_sii_actividades.py`:** Created a dedicated pipeline that downloads the official SII economic activities registry for legal entities (`PUB_NOM_ACTECOS.zip`), processes ~3.7M activity records, and mass-updates `empresas_directorio.giro` and `empresas_directorio.actividades_economicas` (JSON).
+    *   **Separation of Concerns in `etl_sarava.py`:** Removed the erroneous mapping of `Codigo de sociedad` (legal type: SpA, EIRL, SRL) to the `giro` field. The constitution ETL now leaves `giro` empty, allowing `etl_sii_actividades.py` to populate the real business activity.
+    *   **API Exposure:** Added `actividades_economicas` to the SELECT of `/api/v1/empresa` in `api_sarava.py`, enabling the frontend to access the JSON activity array.
+    *   **Frontend Fallback (`index.html`):** The dashboard now displays the `giro` field as economic activity when the detailed `actividades_economicas` object is absent, eliminating the misleading "Not available" message.
+    *   **Recommended Execution:** Every 2 weeks or on-demand, as the SII updates its nominas monthly.
+    *   **Result:** **51,324 companies (69.5% of the directory)** now have real economic activities from the SII. The full suite remains at **126 tests green**.
