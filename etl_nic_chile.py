@@ -37,7 +37,8 @@ CONFIG = {
     "db_host": os.getenv("SARAVA_DB_HOST", "127.0.0.1"),
     "db_port": int(os.getenv("SARAVA_DB_PORT", "3306")),
     "db_name": os.getenv("SARAVA_DB_NAME", "sarava_db"),
-    "similarity_threshold": float(os.getenv("NIC_MATCH_THRESHOLD", "0.72")),
+    "similarity_threshold": float(os.getenv("NIC_MATCH_THRESHOLD", "0.90")),
+    "short_name_max_len": 7,  # Nombres más cortos que esto requieren coincidencia exacta
     "batch_size": int(os.getenv("NIC_BATCH_SIZE", "5000")),
 }
 
@@ -153,44 +154,126 @@ def load_companies(engine, batch_size: int = 5000, offset: int = 0) -> pd.DataFr
     return df
 
 
+def _keyword_filter(name: str, domains_df: pd.DataFrame) -> pd.DataFrame:
+    """Filtra dominios que contengan palabras clave del nombre de empresa.
+
+    Reduce el espacio de búsqueda de O(n) a O(n/k) donde k es la especificidad
+    de las palabras clave, acelerando drásticamente el fuzzy matching.
+
+    IMPORTANTE: No hace fallback al dataset completo para evitar falsos positivos
+    masivos en nombres cortos o ambiguos.
+    """
+    name_lower = name.lower()
+    # Extraer palabras significativas (ignorar spa, sa, ltda, etc.)
+    stopwords = {"spa", "sa", "ltda", "limitada", "eirl", "e.i.", "e.i", "srl", 
+                 "corporacion", "corporación", "holding", "group", "grupo",
+                 "y", "de", "del", "la", "el", "los", "las", "en", "con",
+                 "por", "para", "un", "una", "s.a.", "s.a", "ltada", "limitada."}
+    words = [w.strip(".,-_") for w in name_lower.split() if len(w) > 2 and w.strip(".,-_") not in stopwords]
+    if not words:
+        return pd.DataFrame(columns=domains_df.columns)
+    # Dominios que contienen ALGUNA de las palabras clave
+    mask = domains_df["nombre_base"].str.contains(words[0], na=False, regex=False)
+    for w in words[1:]:
+        mask = mask | domains_df["nombre_base"].str.contains(w, na=False, regex=False)
+    return domains_df[mask]
+
+
 def find_best_domain_match(
-    company_name: str, domains_df: pd.DataFrame, threshold: float = 0.72
-) -> Optional[str]:
+    company_name: str, domains_df: pd.DataFrame, threshold: float = 0.90
+) -> tuple[Optional[str], float]:
     """Encuentra el dominio más similar a una razón social.
+
+    Reglas de precisión:
+    - Nombres cortos (< 7 chars normalizados): Solo coincidencia EXACTA (score 1.0).
+    - Nombres largos (>= 7 chars): Fuzzy matching con umbral estricto (default 0.90).
+    Esto evita falsos positivos como 'TELO SPA' -> 'telos.cl' o 'CDJGROUP' -> 'cdgroup.cl'.
 
     Args:
         company_name: Nombre de la empresa.
         domains_df: DataFrame de dominios con columna 'nombre_base'.
-        threshold: Umbral mínimo de similitud (0.0 - 1.0).
+        threshold: Umbral mínimo de similitud para nombres largos (0.0 - 1.0).
 
     Returns:
-        Dominio candidato o None.
+        Tupla (dominio candidato, score) o (None, 0.0).
     """
     if not company_name or pd.isna(company_name):
-        return None
+        return None, 0.0
 
-    best_score = 0.0
-    best_domain = None
     company_norm = normalize_string(company_name)
 
     if not company_norm:
-        return None
+        return None, 0.0
 
-    # Matching exacto primero (rápido)
+    # Matching exacto primero (rápido, aplica a todos los nombres)
     exact_match = domains_df[domains_df["nombre_base"] == company_norm]
     if not exact_match.empty:
-        return exact_match.iloc[0]["dominio"]
+        return exact_match.iloc[0]["dominio"], 1.0
 
-    # Fuzzy matching
-    for _, row in domains_df.iterrows():
+    # --- REGLA DE PRECISIÓN: Nombres cortos solo aceptan exacto ---
+    # Nombres de base normalizada < 7 caracteres son demasiado ambiguos
+    # para fuzzy matching (ej: 'telo' vs 'telos', 'cdj' vs 'cd').
+    short_name_max = CONFIG.get("short_name_max_len", 7)
+    if len(company_norm.replace(" ", "")) < short_name_max:
+        return None, 0.0
+
+    # Pre-filtro por palabras clave (sin fallback al dataset completo)
+    candidate_df = _keyword_filter(company_name, domains_df)
+
+    if candidate_df.empty:
+        return None, 0.0
+
+    # Fuzzy matching solo sobre candidatos filtrados
+    best_score = 0.0
+    best_domain = None
+    for _, row in candidate_df.iterrows():
         score = similarity_score(company_name, row["nombre_base"])
         if score > best_score:
             best_score = score
             best_domain = row["dominio"]
 
     if best_score >= threshold:
-        return best_domain
-    return None
+        return best_domain, round(best_score, 3)
+    return None, round(best_score, 3)
+
+
+def search_domains_by_name(
+    company_name: str, domains_df: pd.DataFrame, threshold: float = 0.75, top_n: int = 5
+):
+    """Busca los dominios más similares a un nombre de empresa.
+
+    Args:
+        company_name: Nombre de la empresa a buscar.
+        domains_df: DataFrame de dominios con columna 'nombre_base'.
+        threshold: Umbral mínimo de similitud.
+        top_n: Número máximo de resultados.
+
+    Returns:
+        Lista de dicts con {'dominio', 'nombre_base', 'score'} ordenados por score.
+    """
+    if not company_name or pd.isna(company_name):
+        return []
+
+    company_norm = normalize_string(company_name)
+    if not company_norm:
+        return []
+
+    # Pre-filtro por palabras clave
+    candidate_df = _keyword_filter(company_name, domains_df)
+
+    results = []
+    for _, row in candidate_df.iterrows():
+        score = similarity_score(company_name, row["nombre_base"])
+        if score >= threshold:
+            results.append({
+                "dominio": row["dominio"],
+                "nombre_base": row["nombre_base"],
+                "score": round(score, 3),
+            })
+
+    # Ordenar por score descendente y retornar top N
+    results.sort(key=lambda x: x["score"], reverse=True)
+    return results[:top_n]
 
 
 def update_company_domains(
@@ -200,7 +283,7 @@ def update_company_domains(
 
     Args:
         engine: SQLAlchemy engine.
-        updates: Lista de dicts con {'rut': str, 'dominio': str}.
+        updates: Lista de dicts con {'rut': str, 'dominio': str, 'confidence': float}.
         source: Fuente de enriquecimiento.
 
     Returns:
@@ -213,6 +296,7 @@ def update_company_domains(
         UPDATE empresas_directorio
         SET dominio_web = :dominio,
             dominio_web_fuente = :fuente,
+            dominio_web_confidence = :confidence,
             enriquecido_por = :fuente,
             score_completitud = LEAST(score_completitud + 15, 100)
         WHERE rut = :rut
@@ -231,6 +315,7 @@ def update_company_domains(
                         "rut": item["rut"],
                         "dominio": item["dominio"],
                         "fuente": source,
+                        "confidence": item.get("confidence", 0.0),
                     },
                 )
                 updated += result.rowcount
@@ -291,13 +376,15 @@ def run_nic_etl(period: str = "1d", dry_run: bool = False) -> dict:
 
         batch_updates = []
         for _, row in companies_df.iterrows():
-            # Priorizar nombre_fantasia, luego razon_social
-            name = row.get("nombre_fantasia") or row.get("razon_social")
-            match = find_best_domain_match(
+            # Regla estricta: Solo usar nombre_fantasia, ignorar razon_social
+            name = row.get("nombre_fantasia")
+            if not name or pd.isna(name) or not str(name).strip():
+                continue
+            match, confidence = find_best_domain_match(
                 name, domains_df, threshold=CONFIG["similarity_threshold"]
             )
             if match:
-                batch_updates.append({"rut": row["rut"], "dominio": match})
+                batch_updates.append({"rut": row["rut"], "dominio": match, "confidence": confidence})
 
         total_updates.extend(batch_updates)
         stats["companies_scanned"] += len(companies_df)

@@ -292,15 +292,17 @@ def normalize_string(text: Optional[str]) -> str:
     return " ".join(text.split())
 
 
+try:
+    from rapidfuzz import fuzz
+    _USE_RAPIDFUZZ = True
+except ImportError:
+    _USE_RAPIDFUZZ = False
+
+
 def levenshtein_distance(s1: str, s2: str) -> int:
     """Calcula la distancia de Levenshtein entre dos cadenas.
 
-    Args:
-        s1: Primera cadena.
-        s2: Segunda cadena.
-
-    Returns:
-        Distancia de edición mínima.
+    Fallback puramente en Python para cuando rapidfuzz no está disponible.
     """
     if len(s1) < len(s2):
         return levenshtein_distance(s2, s1)
@@ -323,6 +325,9 @@ def levenshtein_distance(s1: str, s2: str) -> int:
 def similarity_score(a: str, b: str) -> float:
     """Devuelve un score de similitud entre 0.0 y 1.0.
 
+    Usa rapidfuzz (C++) cuando está disponible para máximo rendimiento,
+    o cae de vuelta a Levenshtein pura de Python.
+
     Args:
         a: Primera cadena.
         b: Segunda cadena.
@@ -337,9 +342,25 @@ def similarity_score(a: str, b: str) -> float:
     if not a_norm or not b_norm:
         return 0.0
 
-    max_len = max(len(a_norm), len(b_norm))
-    distance = levenshtein_distance(a_norm, b_norm)
-    return 1.0 - (distance / max_len)
+    if _USE_RAPIDFUZZ:
+        # rapidfuzz.fuzz.ratio retorna 0-100
+        score = fuzz.ratio(a_norm, b_norm) / 100.0
+        return round(score, 3)
+    else:
+        max_len = max(len(a_norm), len(b_norm))
+        distance = levenshtein_distance(a_norm, b_norm)
+        return 1.0 - (distance / max_len)
+
+
+def extract_domain(email: str) -> str:
+    """Extrae el dominio corporativo del correo, ignorando dominios genéricos."""
+    if not isinstance(email, str) or '@' not in email:
+        return None
+    domain = email.split('@')[-1].strip().lower()
+    free_domains = ['gmail.com', 'hotmail.com', 'yahoo.com', 'outlook.com', 'live.com', 'icloud.com']
+    if domain in free_domains:
+        return None
+    return domain
 
 
 if __name__ == "__main__":

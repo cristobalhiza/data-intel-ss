@@ -190,6 +190,7 @@ class TestProcessCompany(unittest.TestCase):
         mock_ddgs_cls.return_value.__exit__ = MagicMock(return_value=None)
         mock_ddgs.text.return_value = [
             {"href": "https://empresatest.cl", "title": "Empresa Test SpA"},
+            {"href": "https://empresatest.cl/nosotros", "title": "Nosotros"},
         ]
 
         with patch("etl_ddgs_fallback.update_company_domain") as mock_update:

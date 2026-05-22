@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saravá Sales | Inteligencia de Empresas</title>
+    <title>Saravá Sales | Company Intelligence</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
@@ -44,7 +44,7 @@
             gap: 0.5rem;
             font-family: 'JetBrains Mono', monospace;
         }
-
+ 
         .db-badge {
             font-family: 'JetBrains Mono', monospace;
             border: 1px solid #1f2937;
@@ -53,7 +53,7 @@
             font-weight: bold;
             background: #fff;
         }
-
+ 
         .source-grid {
             background-image: radial-gradient(#d1d5db 1px, transparent 1px);
             background-size: 20px 20px;
@@ -70,15 +70,15 @@
             </div>
             <div class="hidden md:flex space-x-8 text-sm font-medium text-gray-600">
                 <a href="#" class="text-secondary font-bold border-b-2 border-secondary pb-1">RevOps Engine</a>
-                <a href="#fuentes" class="hover:text-secondary transition-colors">Fuentes de Datos</a>
+                <a href="#fuentes" class="hover:text-secondary transition-colors">Data Sources</a>
                 <a href="#" class="hover:text-secondary transition-colors">API Docs</a>
             </div>
             <div>
-                <a href="https://saravasales.com/contacto/" class="bg-primary hover:bg-primaryDark text-darkText font-bold py-2 px-6 border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none inline-block">Contacto</a>
+                <a href="https://saravasales.com/contacto/" class="bg-primary hover:bg-primaryDark text-darkText font-bold py-2 px-6 border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none inline-block">Contact</a>
             </div>
         </div>
     </header>
-
+ 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         
@@ -87,7 +87,7 @@
             <h1 class="text-4xl md:text-6xl font-black mb-4 tracking-tighter uppercase italic">
                 Data Intel <span class="text-secondary">Terminal</span>
             </h1>
-            <p class="text-lg text-gray-600 max-w-2xl mx-auto">Enriquece tu prospección extrayendo información oficial y comercial de alta precisión en tiempo real.</p>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">Enrich your prospecting by extracting high-precision official and commercial information in real-time.</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
@@ -98,7 +98,7 @@
                     [QUERY_BATCH_LOADER]
                 </div>
                 <div class="p-6">
-                    <p class="text-xs font-mono text-gray-500 mb-4 uppercase tracking-tighter">// INPUT: Lista de RUTs (formato: 12345678-9)</p>
+                    <p class="text-xs font-mono text-gray-500 mb-4 uppercase tracking-tighter">// INPUT: RUT List (format: 12345678-9)</p>
                     <textarea x-model="batchInput" class="w-full h-40 p-4 border-2 border-gray-200 rounded-none focus:ring-0 focus:border-secondary outline-none transition-all flex-grow font-mono text-sm bg-gray-50 resize-none" placeholder="76123456-7&#10;78325579-0..."></textarea>
                     <button @click="processBatch" :disabled="isLoading || !batchInput.trim()" class="mt-4 bg-secondary text-white px-6 py-3 border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(45,134,212,0.4)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all w-full font-bold disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2">
                         <span x-show="!isLoading">RUN_PROCESS_BATCH</span>
@@ -123,15 +123,15 @@
                         <div class="flex flex-col gap-1">
                             <label class="text-[10px] font-bold text-gray-500 uppercase font-mono">Select_Field</label>
                             <select x-model="searchField" class="p-3 border-2 border-gray-200 rounded-none bg-gray-50 focus:ring-0 focus:border-primary outline-none text-sm font-bold font-mono">
-                                <option value="razon_social">RAZON_SOCIAL</option>
-                                <option value="rut">RUT_UNICO</option>
-                                <option value="giro">ACTIVIDAD_ECON</option>
-                                <option value="comuna">UBICACION_COMUNA</option>
+                                <option value="razon_social">BUSINESS_NAME</option>
+                                <option value="rut">RUT_ID</option>
+                                <option value="giro">ECONOMIC_ACTIVITY</option>
+                                <option value="comuna">COMMUNE_LOCATION</option>
                                 <option value="region">REGION</option>
-                                <option value="representante_legal">REP_LEGAL</option>
+                                <option value="representante_legal">LEGAL_REP</option>
                                 <option value="email_contacto">EMAIL_CONTACT</option>
-                                <option value="dominio_web">DOMINIO_WEB</option>
-                                <option value="nombre_fantasia">NOMBRE_FANTASIA</option>
+                                <option value="dominio_web">WEB_DOMAIN</option>
+                                <option value="nombre_fantasia">FANTASY_NAME</option>
                             </select>
                         </div>
                         <div class="flex flex-col gap-1">
@@ -272,7 +272,7 @@
                         <tr x-show="!isLoading && allResults.length === 0" x-cloak>
                             <td colspan="4" class="p-16 text-center text-gray-400">
                                 <h3 class="text-lg font-bold text-gray-600 mb-1 font-mono">ERROR: NO_RESULTS_FOUND</h3>
-                                <p class="text-xs font-mono">// Ejecute un proceso de búsqueda o carga masiva.</p>
+                                <p class="text-xs font-mono">// Run a search or batch load process.</p>
                             </td>
                         </tr>
 
@@ -378,55 +378,55 @@
         <!-- Fuentes de Datos Section -->
         <div id="fuentes" class="mb-20">
             <h2 class="text-2xl font-black mb-8 flex items-center gap-3 font-mono uppercase italic border-l-8 border-primary pl-4">
-                Fuentes de Información Oficial
+                Official Data Sources
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 <div class="db-panel p-5 source-grid">
                     <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_01</div>
                     <h3 class="font-black text-lg mb-1 font-mono">SII / REYS</h3>
-                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Registro tributario y constituciones. Esqueleto base de la base de datos.</p>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Tax registry and company constitution deeds. Core database backbone.</p>
                     <div class="db-badge inline-block text-[10px]">DATA_OFFICIAL</div>
                 </div>
                 <div class="db-panel p-5 source-grid">
                     <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_02</div>
                     <h3 class="font-black text-lg mb-1 font-mono">CHILECOMPRA</h3>
-                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Órdenes de compra OCDS masivas. Contactos comerciales y historial transaccional.</p>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Massive OCDS purchase orders. Business contacts and transactional history.</p>
                     <div class="db-badge inline-block text-[10px]">DATA_B2B</div>
                 </div>
                 <div class="db-panel p-5 source-grid">
                     <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_03</div>
                     <h3 class="font-black text-lg mb-1 font-mono">NIC_CHILE</h3>
-                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Listados CSV de dominios .cl. Matching fuzzy para descubrimiento de sitios web.</p>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">CSV listings of .cl domains. Fuzzy matching for website discovery.</p>
                     <div class="db-badge inline-block text-[10px]">DATA_DOMAIN</div>
                 </div>
                 <div class="db-panel p-5 source-grid">
                     <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_04</div>
                     <h3 class="font-black text-lg mb-1 font-mono">INAPI</h3>
-                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Marcas y patentes registradas. Proxy de innovación y madurez empresarial.</p>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Registered trademarks and patents. Innovation and corporate maturity proxy.</p>
                     <div class="db-badge inline-block text-[10px]">DATA_INNOVATION</div>
                 </div>
                 <div class="db-panel p-5 source-grid">
                     <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_05</div>
                     <h3 class="font-black text-lg mb-1 font-mono">DDGS_FALLBACK</h3>
-                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">DuckDuckGo Search gratuito. Descubrimiento de dominios sin API key.</p>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Free DuckDuckGo Search. Web domain discovery without API key.</p>
                     <div class="db-badge inline-block text-[10px]">DATA_OPEN_WEB</div>
                 </div>
                 <div class="db-panel p-5 source-grid">
                     <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_06</div>
                     <h3 class="font-black text-lg mb-1 font-mono">MINDICADOR</h3>
-                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Indicadores económicos diarios. UF, dólar, IPC para normalización de montos.</p>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Daily economic indicators. UF, USD, inflation index (IPC) for amount normalization.</p>
                     <div class="db-badge inline-block text-[10px]">DATA_MACRO</div>
                 </div>
                 <div class="db-panel p-5 source-grid">
                     <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SOURCE_07</div>
                     <h3 class="font-black text-lg mb-1 font-mono">MERCADO_PUBLICO</h3>
-                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">API oficial para enriquecimiento on-demand de contactos por RUT.</p>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Official API for on-demand contact enrichment by RUT.</p>
                     <div class="db-badge inline-block text-[10px]">DATA_LIVE_API</div>
                 </div>
                 <div class="db-panel p-5 source-grid">
                     <div class="text-xs font-bold text-gray-400 mb-1 font-mono">SCORE</div>
-                    <h3 class="font-black text-lg mb-1 font-mono">COMPLETITUD</h3>
-                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Métrica calculada 0-100% basada en campos poblados. Prioriza enriquecimiento.</p>
+                    <h3 class="font-black text-lg mb-1 font-mono">COMPLETENESS</h3>
+                    <p class="text-xs text-gray-600 mb-3 font-mono leading-tight">Calculated completeness metric (0-100%) based on populated fields. Prioritizes enrichment.</p>
                     <div class="db-badge inline-block text-[10px]">DATA_QUALITY</div>
                 </div>
             </div>
@@ -480,11 +480,11 @@
                                     <div class="mb-6 db-panel p-4">
                                         <h3 class="text-sm font-black border-b-2 border-gray-900 pb-2 mb-3 flex items-center gap-2">
                                             <svg class="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                            INTELIGENCIA_ENRIQUECIDA
+                                            ENRICHED_INTELLIGENCE
                                         </h3>
                                         <div class="grid grid-cols-2 gap-3 text-xs">
                                             <div>
-                                                <span class="text-gray-500 font-bold">SCORE_COMPLETITUD:</span>
+                                                <span class="text-gray-500 font-bold">COMPLETENESS_SCORE:</span>
                                                 <div class="flex items-center gap-2 mt-1">
                                                     <div class="flex-1 h-2 bg-gray-200 border border-gray-400">
                                                         <div class="h-full bg-secondary" :style="`width: ${selectedCompany?.score_completitud || 0}%`"></div>
@@ -493,18 +493,18 @@
                                                 </div>
                                             </div>
                                             <div>
-                                                <span class="text-gray-500 font-bold">PROPIEDAD_INDUSTRIAL:</span>
+                                                <span class="text-gray-500 font-bold">INDUSTRIAL_PROPERTY:</span>
                                                 <div class="flex gap-2 mt-1">
-                                                    <span class="db-badge text-blue-700 border-blue-600 bg-blue-50" x-show="selectedCompany?.tiene_marca">MARCA ™️</span>
-                                                    <span class="db-badge text-purple-700 border-purple-600 bg-purple-50" x-show="selectedCompany?.tiene_patente">PATENTE 🔬</span>
-                                                    <span class="text-gray-400" x-show="!selectedCompany?.tiene_marca && !selectedCompany?.tiene_patente">Sin registros</span>
+                                                    <span class="db-badge text-blue-700 border-blue-600 bg-blue-50" x-show="selectedCompany?.tiene_marca">BRAND ™️</span>
+                                                    <span class="db-badge text-purple-700 border-purple-600 bg-purple-50" x-show="selectedCompany?.tiene_patente">PATENT 🔬</span>
+                                                    <span class="text-gray-400" x-show="!selectedCompany?.tiene_marca && !selectedCompany?.tiene_patente">No records</span>
                                                 </div>
                                             </div>
                                             <div class="col-span-2">
-                                                <span class="text-gray-500 font-bold">ACTIVIDADES_ECONOMICAS:</span>
+                                                <span class="text-gray-500 font-bold">ECONOMIC_ACTIVITIES:</span>
                                                 <div class="flex flex-wrap gap-1 mt-1">
                                                     <template x-if="!selectedCompany?.actividades_economicas">
-                                                        <span class="text-gray-400">No disponible</span>
+                                                        <span class="text-gray-400">Not available</span>
                                                     </template>
                                                     <template x-if="selectedCompany?.actividades_economicas">
                                                         <template x-for="act in (typeof selectedCompany.actividades_economicas === 'string' ? JSON.parse(selectedCompany.actividades_economicas) : selectedCompany.actividades_economicas)" :key="act.codigo">
@@ -514,10 +514,44 @@
                                                 </div>
                                             </div>
                                             <div class="col-span-2">
-                                                <span class="text-gray-500 font-bold">FUENTES_DATO:</span>
+                                                <span class="text-gray-500 font-bold">DATA_SOURCES:</span>
                                                 <span class="db-badge text-[9px] text-gray-700 border-gray-400 bg-gray-50" x-text="selectedCompany?.enriquecido_por || 'RES'"></span>
                                                 <span class="db-badge text-[9px] text-gray-700 border-gray-400 bg-gray-50" x-show="selectedCompany?.dominio_web_fuente" x-text="selectedCompany?.dominio_web_fuente"></span>
                                             </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- NIC Chile Search -->
+                                    <div class="mb-6 db-panel p-4" x-show="!selectedCompany?.dominio_web">
+                                        <h3 class="text-sm font-black border-b-2 border-gray-900 pb-2 mb-3 flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                            SEARCH_NIC_CHILE
+                                        </h3>
+                                        <p class="text-xs text-gray-500 mb-2">Search candidate .cl domains for this company:</p>
+                                        <div class="flex items-center gap-2">
+                                            <button 
+                                                @click="searchNicChile()" 
+                                                :disabled="nicSearchLoading"
+                                                class="bg-green-50 text-green-700 border-2 border-green-700 px-3 py-1 text-xs font-bold hover:bg-green-100 transition-colors disabled:opacity-50 flex items-center gap-1"
+                                            >
+                                                <span x-show="!nicSearchLoading">🔍 SEARCH</span>
+                                                <span x-show="nicSearchLoading">⏳ Searching...</span>
+                                            </button>
+                                            <span class="text-[10px] text-gray-400" x-text="selectedCompany?.nombre_fantasia || selectedCompany?.razon_social"></span>
+                                        </div>
+                                        <div x-show="nicSearchResults.length > 0" class="mt-3 space-y-2">
+                                            <template x-for="result in nicSearchResults" :key="result.dominio">
+                                                <div class="flex items-center justify-between bg-gray-50 p-2 border border-gray-300">
+                                                    <div>
+                                                        <span class="text-xs font-bold text-secondary" x-text="result.dominio"></span>
+                                                        <span class="text-[10px] text-gray-500 ml-2" x-text="`score: ${result.score}`"></span>
+                                                    </div>
+                                                    <a :href="`http://${result.dominio}`" target="_blank" class="text-[10px] text-green-700 font-bold hover:underline">VISIT →</a>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <div x-show="!nicSearchLoading && nicSearchResults.length === 0 && nicSearchResults !== null" class="mt-2 text-[10px] text-gray-400">
+                                            No results found on NIC Chile for this name.
                                         </div>
                                     </div>
                                     
@@ -531,11 +565,11 @@
                                         <div class="grid grid-cols-2 gap-4">
                                             <div class="db-panel p-4 text-center">
                                                 <div class="text-3xl font-black text-secondary" x-text="transactionData?.ordenes_compra?.length || 0"></div>
-                                                <div class="text-[10px] font-bold text-gray-500 uppercase">Órdenes (Top 50)</div>
+                                                <div class="text-[10px] font-bold text-gray-500 uppercase">Orders (Top 50)</div>
                                             </div>
                                             <div class="db-panel p-4 text-center">
                                                 <div class="text-3xl font-black text-primaryDark" x-text="transactionData?.licitaciones?.length || 0"></div>
-                                                <div class="text-[10px] font-bold text-gray-500 uppercase">Licitaciones (Top 50)</div>
+                                                <div class="text-[10px] font-bold text-gray-500 uppercase">Tenders (Top 50)</div>
                                             </div>
                                         </div>
                                     </div>
@@ -544,7 +578,7 @@
                                     <div class="mb-8">
                                         <h3 class="text-lg font-black border-b-2 border-gray-900 pb-2 mb-4 flex items-center gap-2">
                                             <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                            Órdenes de Compra (Últimas 50)
+                                            Purchase Orders (Last 50)
                                         </h3>
                                         
                                         <div x-show="transactionData?.ordenes_compra?.length === 0" class="p-4 bg-gray-50 text-gray-500 text-sm text-center border-2 border-gray-200 border-dashed">
@@ -555,9 +589,9 @@
                                             <table class="w-full text-left text-xs">
                                                 <thead class="bg-gray-100 border-b-2 border-gray-900">
                                                     <tr>
-                                                        <th class="p-2 border-r-2 border-gray-900">CODIGO</th>
-                                                        <th class="p-2 border-r-2 border-gray-900">NOMBRE</th>
-                                                        <th class="p-2">ESTADO</th>
+                                                        <th class="p-2 border-r-2 border-gray-900">CODE</th>
+                                                        <th class="p-2 border-r-2 border-gray-900">NAME</th>
+                                                        <th class="p-2">STATUS</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="divide-y divide-gray-200">
@@ -582,22 +616,22 @@
                                                                 <div x-show="!isLoadingDeepOC && expandedDataOC">
                                                                     <div class="grid grid-cols-2 gap-4 text-xs">
                                                                         <div>
-                                                                            <p class="text-gray-500 font-bold">Monto Total:</p>
+                                                                            <p class="text-gray-500 font-bold">Total Amount:</p>
                                                                             <p class="text-lg font-black" x-text="expandedDataOC.MontoTotalOC_PesosChilenos ? `$${Number(expandedDataOC.MontoTotalOC_PesosChilenos).toLocaleString('es-CL')}` : 'N/A'"></p>
                                                                         </div>
                                                                         <div>
-                                                                            <p class="text-gray-500 font-bold">Fechas:</p>
-                                                                            <p>Envío: <span x-text="(expandedDataOC.FechaEnvio || '').split('T')[0]"></span></p>
-                                                                            <p>Aceptación: <span x-text="(expandedDataOC.FechaAceptacion || '').split('T')[0]"></span></p>
+                                                                            <p class="text-gray-500 font-bold">Dates:</p>
+                                                                            <p>Sent: <span x-text="(expandedDataOC.FechaEnvio || '').split('T')[0]"></span></p>
+                                                                            <p>Accepted: <span x-text="(expandedDataOC.FechaAceptacion || '').split('T')[0]"></span></p>
                                                                         </div>
                                                                         <div class="col-span-2">
-                                                                            <p class="text-gray-500 font-bold">Comprador:</p>
+                                                                            <p class="text-gray-500 font-bold">Buyer:</p>
                                                                             <p x-text="expandedDataOC.Comprador?.NombreOrganismo || 'N/A'"></p>
                                                                             <p class="text-gray-400" x-text="expandedDataOC.Comprador?.RutUnidad || ''"></p>
                                                                         </div>
                                                                         <div class="col-span-2">
-                                                                            <p class="text-gray-500 font-bold">Descripción / Observaciones:</p>
-                                                                            <p class="whitespace-pre-wrap break-words" x-text="expandedDataOC.Descripcion || 'Sin descripción'"></p>
+                                                                            <p class="text-gray-500 font-bold">Description / Notes:</p>
+                                                                            <p class="whitespace-pre-wrap break-words" x-text="expandedDataOC.Descripcion || 'No description'"></p>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -613,7 +647,7 @@
                                     <div>
                                         <h3 class="text-lg font-black border-b-2 border-gray-900 pb-2 mb-4 flex items-center gap-2">
                                             <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                                            Licitaciones (Últimas 50)
+                                            Tenders (Last 50)
                                         </h3>
                                         
                                         <div x-show="transactionData?.licitaciones?.length === 0" class="p-4 bg-gray-50 text-gray-500 text-sm text-center border-2 border-gray-200 border-dashed">
@@ -624,10 +658,10 @@
                                             <table class="w-full text-left text-xs">
                                                 <thead class="bg-gray-100 border-b-2 border-gray-900">
                                                     <tr>
-                                                        <th class="p-2 border-r-2 border-gray-900">CODIGO</th>
-                                                        <th class="p-2 border-r-2 border-gray-900">NOMBRE</th>
-                                                        <th class="p-2 border-r-2 border-gray-900">CIERRE</th>
-                                                        <th class="p-2">ESTADO</th>
+                                                        <th class="p-2 border-r-2 border-gray-900">CODE</th>
+                                                        <th class="p-2 border-r-2 border-gray-900">NAME</th>
+                                                        <th class="p-2 border-r-2 border-gray-900">CLOSING DATE</th>
+                                                        <th class="p-2">STATUS</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="divide-y divide-gray-200">
@@ -653,22 +687,22 @@
                                                                 <div x-show="!isLoadingDeepLic && expandedDataLic">
                                                                     <div class="grid grid-cols-2 gap-4 text-xs">
                                                                         <div>
-                                                                            <p class="text-gray-500 font-bold">Monto Estimado:</p>
-                                                                            <p class="text-lg font-black" x-text="expandedDataLic.Estimacion === 1 ? 'Presupuesto Disponible' : (expandedDataLic.MontoEstimado ? `$${Number(expandedDataLic.MontoEstimado).toLocaleString('es-CL')}` : 'No Informado')"></p>
+                                                                            <p class="text-gray-500 font-bold">Estimated Amount:</p>
+                                                                            <p class="text-lg font-black" x-text="expandedDataLic.Estimacion === 1 ? 'Available Budget' : (expandedDataLic.MontoEstimado ? `$${Number(expandedDataLic.MontoEstimado).toLocaleString('es-CL')}` : 'Not Disclosed')"></p>
                                                                         </div>
                                                                         <div>
-                                                                            <p class="text-gray-500 font-bold">Fechas:</p>
-                                                                            <p>Publicación: <span x-text="(expandedDataLic.Fechas?.FechaPubRespuestas || expandedDataLic.Fechas?.FechaCreacion || '').split('T')[0]"></span></p>
-                                                                            <p>Adjudicación: <span x-text="(expandedDataLic.Fechas?.FechaAdjudicacion || '').split('T')[0]"></span></p>
+                                                                            <p class="text-gray-500 font-bold">Dates:</p>
+                                                                            <p>Published: <span x-text="(expandedDataLic.Fechas?.FechaPubRespuestas || expandedDataLic.Fechas?.FechaCreacion || '').split('T')[0]"></span></p>
+                                                                            <p>Awarded: <span x-text="(expandedDataLic.Fechas?.FechaAdjudicacion || '').split('T')[0]"></span></p>
                                                                         </div>
                                                                         <div class="col-span-2">
-                                                                            <p class="text-gray-500 font-bold">Comprador:</p>
+                                                                            <p class="text-gray-500 font-bold">Buyer:</p>
                                                                             <p x-text="expandedDataLic.Comprador?.NombreOrganismo || 'N/A'"></p>
                                                                             <p class="text-gray-400" x-text="expandedDataLic.Comprador?.RutUnidad || ''"></p>
                                                                         </div>
                                                                         <div class="col-span-2">
-                                                                            <p class="text-gray-500 font-bold">Descripción:</p>
-                                                                            <p class="whitespace-pre-wrap break-words" x-text="expandedDataLic.Descripcion || 'Sin descripción'"></p>
+                                                                            <p class="text-gray-500 font-bold">Description:</p>
+                                                                            <p class="whitespace-pre-wrap break-words" x-text="expandedDataLic.Descripcion || 'No description'"></p>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -707,6 +741,10 @@
                 selectedCompany: null,
                 transactionData: null,
                 isDashboardLoading: false,
+                
+                // NIC Chile Search
+                nicSearchResults: [],
+                nicSearchLoading: false,
                 
                 // Deep Data State
                 expandedRowOC: null,
@@ -817,7 +855,7 @@
                     this.resetPagination();
                     try {
                         const response = await fetch(`${this.apiBase}/empresas/all?limit=500&provider_only=${this.providerOnly}`);
-                        if (!response.ok) throw new Error('Error al conectar con el servidor');
+                        if (!response.ok) throw new Error('Error connecting to server');
                         this.allResults = await response.json();
                     } catch (err) {
                         this.errorMsg = err.message;
@@ -839,7 +877,7 @@
                             headers: {'Content-Type': 'application/json'},
                             body: JSON.stringify({ruts: lines})
                         });
-                        if (!response.ok) throw new Error('Error consultando lote en la API');
+                        if (!response.ok) throw new Error('Error querying batch on API');
                         this.allResults = await response.json();
                     } catch (err) {
                         this.errorMsg = err.message;
@@ -860,7 +898,7 @@
                             url += `&q=${encodeURIComponent(this.searchQuery.trim())}`;
                         }
                         const response = await fetch(url);
-                        if (!response.ok) throw new Error('Error en el servidor de búsqueda');
+                        if (!response.ok) throw new Error('Error in search server');
                         this.allResults = await response.json();
                     } catch (err) {
                         this.errorMsg = err.message;
@@ -916,15 +954,15 @@
                     this.isLoading = true;
                     try {
                         const resp = await fetch(`${this.apiBase}/empresa?rut=${rut}&enrich=true`);
-                        if (!resp.ok) throw new Error("Error al enriquecer via API");
+                        if (!resp.ok) throw new Error("Error enriching via API");
                         const updatedData = await resp.json();
                         
-                        // Actualizar en la lista local
+                        // Update in local list
                         const idx = this.allResults.findIndex(r => r.rut === rut);
                         if (idx !== -1) {
                             this.allResults[idx] = updatedData;
                         }
-                        alert("Registro enriquecido exitosamente con datos en tiempo real de Mercado Público.");
+                        alert("Record successfully enriched with real-time data from Mercado Público.");
                     } catch (err) {
                         alert(err.message);
                     } finally {
@@ -943,7 +981,7 @@
                         if (!response.ok) throw new Error('Error fetching transaction history');
                         this.transactionData = await response.json();
                     } catch (err) {
-                        alert("Error cargando historial: " + err.message);
+                        alert("Error loading history: " + err.message);
                     } finally {
                         this.isDashboardLoading = false;
                     }
@@ -990,6 +1028,28 @@
                         console.error(err);
                     } finally {
                         this.isLoadingDeepLic = false;
+                    }
+                },
+
+                async searchNicChile() {
+                    if (!this.selectedCompany) return;
+                    const query = this.selectedCompany.nombre_fantasia || this.selectedCompany.razon_social;
+                    if (!query || query.length < 3) {
+                        alert('Company name is too short to search');
+                        return;
+                    }
+                    this.nicSearchLoading = true;
+                    this.nicSearchResults = [];
+                    try {
+                        const response = await fetch(`${this.apiBase}/nic-chile/search?q=${encodeURIComponent(query)}&period=1m&limit=5&threshold=0.75`);
+                        if (!response.ok) throw new Error('Error searching NIC Chile');
+                        const data = await response.json();
+                        this.nicSearchResults = data.results || [];
+                    } catch (err) {
+                        console.error('NIC Chile search error:', err);
+                        alert('Error searching NIC Chile: ' + err.message);
+                    } finally {
+                        this.nicSearchLoading = false;
                     }
                 }
             }));

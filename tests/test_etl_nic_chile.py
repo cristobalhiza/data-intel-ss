@@ -54,45 +54,96 @@ class TestLoadDomains(unittest.TestCase):
 
 
 class TestFindBestDomainMatch(unittest.TestCase):
-    """Tests para el algoritmo de matching fuzzy."""
+    """Tests para el algoritmo de matching fuzzy de alta precisión."""
 
     def setUp(self):
         """Prepara un DataFrame de dominios de prueba."""
         self.domains = pd.DataFrame({
-            "dominio": ["constructoraxyz.cl", "tecnologiasabc.cl", "foo.cl"],
-            "nombre_base": ["constructoraxyz", "tecnologiasabc", "foo"],
+            "dominio": [
+                "constructoraxyz.cl", "tecnologiasabc.cl", "foo.cl",
+                "telos.cl", "cdgroup.cl", "jdproducciones.cl",
+                "transporteda.cl", "gylserviciosspa.cl",
+                "constructoradelmaipo.cl",
+            ],
+            "nombre_base": [
+                "constructoraxyz", "tecnologiasabc", "foo",
+                "telos", "cdgroup", "jdproducciones",
+                "transporteda", "gylserviciosspa",
+                "constructoradelmaipo",
+            ],
         })
 
     def test_exact_match(self):
         """Matching exacto debe devolver el dominio."""
-        result = nic.find_best_domain_match(
-            "constructoraxyz", self.domains, threshold=0.7
+        domain, score = nic.find_best_domain_match(
+            "constructoraxyz", self.domains, threshold=0.9
         )
-        self.assertEqual(result, "constructoraxyz.cl")
+        self.assertEqual(domain, "constructoraxyz.cl")
+        self.assertEqual(score, 1.0)
 
-    def test_fuzzy_match(self):
-        """Matching fuzzy con typo debe funcionar."""
-        result = nic.find_best_domain_match(
-            "constructora xyz", self.domains, threshold=0.6
+    def test_fuzzy_match_long_name(self):
+        """Nombres largos con alta similitud deben emparejarse."""
+        domain, score = nic.find_best_domain_match(
+            "Constructora del Maipo SpA", self.domains, threshold=0.90
         )
-        self.assertEqual(result, "constructoraxyz.cl")
+        self.assertEqual(domain, "constructoradelmaipo.cl")
+        self.assertGreaterEqual(score, 0.90)
 
     def test_no_match_below_threshold(self):
         """Debe devolver None si no supera el umbral."""
-        result = nic.find_best_domain_match(
+        domain, score = nic.find_best_domain_match(
             "Nombre Completamente Diferente", self.domains, threshold=0.9
         )
-        self.assertIsNone(result)
+        self.assertIsNone(domain)
 
     def test_empty_name(self):
         """Nombre vacío debe devolver None."""
-        result = nic.find_best_domain_match("", self.domains, threshold=0.5)
-        self.assertIsNone(result)
+        domain, score = nic.find_best_domain_match("", self.domains, threshold=0.5)
+        self.assertIsNone(domain)
+        self.assertEqual(score, 0.0)
 
     def test_none_name(self):
         """Nombre None debe devolver None."""
-        result = nic.find_best_domain_match(None, self.domains, threshold=0.5)
-        self.assertIsNone(result)
+        domain, score = nic.find_best_domain_match(None, self.domains, threshold=0.5)
+        self.assertIsNone(domain)
+        self.assertEqual(score, 0.0)
+
+    # --- REGRESIONES: Falsos positivos reportados en producción ---
+
+    def test_reject_telo_vs_telos(self):
+        """TELO SPA NO debe asociarse a telos.cl (nombre corto, no es exacto)."""
+        domain, score = nic.find_best_domain_match(
+            "TELO SPA", self.domains, threshold=0.90
+        )
+        self.assertIsNone(domain)
+
+    def test_reject_cdjgroup_vs_cdgroup(self):
+        """CDJGROUP NO debe asociarse a cdgroup.cl (nombre corto, no es exacto)."""
+        domain, score = nic.find_best_domain_match(
+            "CDJGROUP", self.domains, threshold=0.90
+        )
+        self.assertIsNone(domain)
+
+    def test_reject_sp_producciones_vs_jdproducciones(self):
+        """Sp producciones Spa NO debe asociarse a jdproducciones.cl."""
+        domain, score = nic.find_best_domain_match(
+            "Sp producciones Spa", self.domains, threshold=0.90
+        )
+        self.assertIsNone(domain)
+
+    def test_reject_transporta_vs_transporteda(self):
+        """TRANSPORTA SPA NO debe asociarse a transporteda.cl."""
+        domain, score = nic.find_best_domain_match(
+            "TRANSPORTA SPA", self.domains, threshold=0.90
+        )
+        self.assertIsNone(domain)
+
+    def test_reject_gm_servicios_vs_gylserviciosspa(self):
+        """G&M servicios spa NO debe asociarse a gylserviciosspa.cl."""
+        domain, score = nic.find_best_domain_match(
+            "G&M servicios spa", self.domains, threshold=0.90
+        )
+        self.assertIsNone(domain)
 
 
 class TestUpdateCompanyDomains(unittest.TestCase):
@@ -153,7 +204,7 @@ class TestRunNicEtlDryRun(unittest.TestCase):
                 return pd.DataFrame({
                     "rut": ["76.123.456-0"],
                     "razon_social": ["Constructora XYZ SpA"],
-                    "nombre_fantasia": [None],
+                    "nombre_fantasia": ["Constructora XYZ"],
                     "dominio_web": [None],
                 })
             return pd.DataFrame(columns=["rut", "razon_social", "nombre_fantasia", "dominio_web"])

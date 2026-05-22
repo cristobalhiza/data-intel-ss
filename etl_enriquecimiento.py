@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
+from pipeline_core import extract_domain
 
 # --- Cargar Variables de Entorno ---
 def load_env():
@@ -38,15 +39,7 @@ def clean_rut(rut):
         return f"{s_rut[:-1]}-{s_rut[-1]}"
     return s_rut
 
-def extract_domain(email):
-    """Extrae el dominio corporativo del correo, ignorando dominios genéricos."""
-    if not isinstance(email, str) or '@' not in email:
-        return None
-    domain = email.split('@')[-1].strip().lower()
-    free_domains = ['gmail.com', 'hotmail.com', 'yahoo.com', 'outlook.com', 'live.com', 'icloud.com']
-    if domain in free_domains:
-        return None
-    return domain
+
 
 def run_etl(file_path):
     print(f"Iniciando Pipeline ETL Masivo con archivo: {file_path}")

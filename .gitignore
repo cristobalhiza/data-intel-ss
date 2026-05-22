@@ -23,3 +23,14 @@ logo-saravasales-horizontal.png:Zone.Identifier
 .DS_Store
 .coverage
 __pycache__/
+
+# Logs and PIDs
+*.log
+*.pid
+
+# Caching & Local Configs
+.pytest_cache/
+.antigravitycli/
+
+# Scratch directory (development/experimental scripts)
+scratch/

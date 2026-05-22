@@ -33,31 +33,36 @@ CONFIG = {
     "db_port": int(os.getenv("SARAVA_DB_PORT", "3306")),
     "db_name": os.getenv("SARAVA_DB_NAME", "sarava_db"),
     "limit": int(os.getenv("DDGS_LIMIT", "100")),
-    "confidence_threshold": float(os.getenv("DDGS_CONFIDENCE", "0.40")),
+    "confidence_threshold": float(os.getenv("DDGS_CONFIDENCE", "0.60")),
 }
 
 _rate_limiter = RateLimiter(delay_seconds=3.0)
 
 # Dominios a ignorar (redes sociales, marketplaces, portales)
 IGNORED_DOMAINS = {
-    "facebook.com",
-    "fb.com",
-    "instagram.com",
-    "twitter.com",
-    "x.com",
-    "linkedin.com",
-    "youtube.com",
-    "mercadolibre.cl",
-    "mercadolibre.com",
-    "google.com",
-    "bing.com",
-    "yahoo.com",
-    "wikipedia.org",
-    "chileatiende.gob.cl",
-    "datos.gob.cl",
-    "emol.com",
-    "latercera.com",
-    "lun.com",
+    # Redes sociales
+    "facebook.com", "fb.com", "instagram.com", "twitter.com", "x.com",
+    "linkedin.com", "youtube.com", "tiktok.com", "pinterest.com",
+    # Buscadores y marketplaces
+    "google.com", "bing.com", "yahoo.com", "mercadolibre.cl", "mercadolibre.com",
+    "amazon.com", "aliexpress.com", "ebay.com",
+    # Portales de noticias
+    "wikipedia.org", "emol.com", "latercera.com", "lun.com", "biobiochile.cl",
+    "cnnchile.com", "t13.cl", "cooperativa.cl",
+    # Gobierno
+    "chileatiende.gob.cl", "datos.gob.cl", "sii.cl", "servel.cl",
+    # Directorios de empresas (fuentes de falsos positivos)
+    "zoominfo.com", "dnb.com", "dunsguide.com", "volza.com", "emis.com",
+    "panjiva.com", "pitchbook.com", "crunchbase.com", "bloomberg.com",
+    "chilerutempresa.cl", "chilepymes.com", "portalchile.org",
+    "dequienes.cl", "chilecompite.cl", "todolicitaciones.cl",
+    "licitapyme.cl", "licitaciones.io", "mercadopublico.cl",
+    "expertini.com", "trendslatinos.com", "transdatanexus.com",
+    # Otros portales genéricos
+    "falabella.com", "paris.cl", "ripley.cl", "abcdin.cl", "hites.com",
+    "sodimac.cl", "easy.cl", "jumbo.cl", "lider.cl", "unimarc.cl",
+    "cencosud.com", "apps.apple.com", "play.google.com",
+    "github.com", "gitlab.com", "behance.net", "issuu.com",
 }
 
 
@@ -112,8 +117,13 @@ def extract_domain(url: Optional[str]) -> Optional[str]:
         # Quitar www.
         if domain.startswith("www."):
             domain = domain[4:]
+        # Verificar match exacto
         if domain in IGNORED_DOMAINS:
             return None
+        # Verificar subdominios (ej: cl.linkedin.com -> linkedin.com)
+        for ignored in IGNORED_DOMAINS:
+            if domain.endswith("." + ignored):
+                return None
         return domain
     except Exception:
         return None
@@ -196,13 +206,14 @@ def update_company_domain(
         UPDATE empresas_directorio
         SET dominio_web = :dominio,
             dominio_web_fuente = 'DDGS',
+            dominio_web_confidence = :confidence,
             score_completitud = LEAST(score_completitud + 15, 100)
         WHERE rut = :rut
           AND (dominio_web IS NULL OR dominio_web = '')
     """)
 
     with engine.begin() as conn:
-        result = conn.execute(query, {"rut": rut, "dominio": domain})
+        result = conn.execute(query, {"rut": rut, "dominio": domain, "confidence": confidence})
     return result.rowcount
 
 

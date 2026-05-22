@@ -4,6 +4,7 @@ import json
 import time
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
+from pipeline_core import extract_domain
 
 # --- Configuración ---
 def load_env():
@@ -61,10 +62,15 @@ def enrich_rut(rut, engine=None):
         contact_data = {
             "email": prov.get("MailContacto"),
             "telefono": prov.get("FonoContacto"),
-            "representante": prov.get("NombreContacto")
+            "representante": prov.get("NombreContacto"),
+            "nombre_fantasia": prov.get("NombreProveedor")
         }
         
-        if contact_data["email"]:
+        dominio_web = extract_domain(contact_data["email"]) if contact_data.get("email") else None
+        if dominio_web:
+            contact_data["dominio_web"] = dominio_web
+        
+        if contact_data["email"] or contact_data["nombre_fantasia"]:
             with engine.begin() as conn:
                 conn.execute(text("""
                     UPDATE empresas_directorio 
@@ -72,6 +78,8 @@ def enrich_rut(rut, engine=None):
                         email_contacto = COALESCE(NULLIF(TRIM(email_contacto), ''), :email),
                         telefono = COALESCE(NULLIF(TRIM(telefono), ''), :tel),
                         representante_legal = COALESCE(NULLIF(TRIM(representante_legal), ''), :rep),
+                        nombre_fantasia = COALESCE(NULLIF(TRIM(nombre_fantasia), ''), :fantasia),
+                        dominio_web = COALESCE(NULLIF(TRIM(dominio_web), ''), :dominio),
                         enriquecido_por = 'MERCADOPUBLICO_API',
                         last_updated = CURRENT_TIMESTAMP
                     WHERE rut = :rut
@@ -79,6 +87,8 @@ def enrich_rut(rut, engine=None):
                     "email": contact_data["email"],
                     "tel": contact_data["telefono"],
                     "rep": contact_data["representante"],
+                    "fantasia": contact_data["nombre_fantasia"],
+                    "dominio": dominio_web,
                     "rut": rut
                 })
             return contact_data

@@ -108,11 +108,11 @@ async def get_empresa(
 @app.get("/api/v1/search")
 def search_empresas(q: Optional[str] = Query(None), field: str = Query("razon_social"), condition: str = Query("contains"), provider_only: bool = Query(False)):
     # (Resto de la lógica de búsqueda se mantiene igual...)
-    allowed_fields = {"rut", "razon_social", "giro", "comuna", "region", "representante_legal", "email_contacto", "dominio_web"}
+    allowed_fields = {"rut", "razon_social", "giro", "comuna", "region", "representante_legal", "email_contacto", "dominio_web", "nombre_fantasia"}
     if field not in allowed_fields: field = "razon_social"
     sql_where = ""
     params = {}
-    if condition == "has_value": sql_where = f"({field} IS NOT NULL AND TRIM({field}) != '')"
+    if condition == "has_value": sql_where = f"({field} IS NOT NULL AND TRIM({field}) != '' AND TRIM({field}) != '-')"
     else:
         if not q or len(q.strip()) < 1: return []
         clean_term = q.strip()
@@ -204,6 +204,73 @@ async def get_empresa_transacciones(rut: str):
     }
 
 import requests
+
+# --- NIC Chile Search Endpoint ---
+import tempfile
+import etl_nic_chile
+from pipeline_core import normalize_string
+
+_nic_chile_cache = {"domains_df": None, "cached_at": 0, "period": None}
+
+@app.get("/api/v1/nic-chile/search")
+async def search_nic_chile(
+    q: str = Query(..., description="Nombre de empresa a buscar en NIC Chile"),
+    period: str = Query("1d", description="Periodo de dominios: 1d, 1w, 1m"),
+    limit: int = Query(5, le=20, description="Máximo de resultados"),
+    threshold: float = Query(0.75, ge=0.0, le=1.0, description="Umbral de similitud mínimo (recomendado: 0.75-0.85)"),
+):
+    """Busca dominios .cl candidatos para un nombre de empresa.
+    
+    Descarga el CSV de dominios recientes de NIC Chile, filtra por palabras clave
+    del nombre buscado, y retorna los mejores matches con score de confianza.
+    """
+    if not q or len(q.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Query debe tener al menos 3 caracteres")
+    
+    if period not in ("1d", "1w", "1m"):
+        raise HTTPException(status_code=400, detail="Periodo debe ser 1d, 1w o 1m")
+    
+    try:
+        # Descargar CSV (con caché en memoria de 5 minutos)
+        now = datetime.now().timestamp()
+        cache_valid = (
+            _nic_chile_cache["domains_df"] is not None
+            and _nic_chile_cache["period"] == period
+            and (now - _nic_chile_cache["cached_at"]) < 300  # 5 min cache
+        )
+        
+        if not cache_valid:
+            csv_path = etl_nic_chile.fetch_nic_csv(period, temp_dir=tempfile.gettempdir())
+            if not csv_path:
+                raise HTTPException(status_code=503, detail="No se pudo descargar el CSV de NIC Chile")
+            domains_df = etl_nic_chile.load_domains(csv_path)
+            _nic_chile_cache["domains_df"] = domains_df
+            _nic_chile_cache["cached_at"] = now
+            _nic_chile_cache["period"] = period
+            # Limpiar archivo temporal
+            try:
+                os.remove(csv_path)
+            except OSError:
+                pass
+        else:
+            domains_df = _nic_chile_cache["domains_df"]
+        
+        # Buscar candidatos
+        results = etl_nic_chile.search_domains_by_name(
+            q.strip(), domains_df, threshold=threshold, top_n=limit
+        )
+        
+        return {
+            "query": q.strip(),
+            "period": period,
+            "domains_scanned": len(domains_df),
+            "results": results,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en búsqueda NIC Chile: {str(e)}")
+
 
 @app.get("/api/v1/mercado-publico/oc/{codigo}")
 def get_oc_details(codigo: str):
