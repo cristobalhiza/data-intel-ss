@@ -103,9 +103,15 @@ Transformación de la plataforma en un radar de mercado integral con caché rela
     ```
 
 2.  **Base de Datos:**
-    Importa la estructura inicial:
+    Crea la base de datos e importa la estructura inicial:
     ```bash
     mysql -h 127.0.0.1 -P 3307 -u sarava_user -p8977 < setup_db.sql
+    ```
+
+    **Carga del Dataset Inicial (Recomendado):**
+    Para poblar de inmediato tu base de datos local con la muestra completa del proyecto (~73.000 empresas constituidas, ~19.000 órdenes de compra, marcas y patentes pre-enriquecidas):
+    ```bash
+    gunzip < backup_sarava_db.sql.gz | mysql -h 127.0.0.1 -P 3307 -u sarava_user -p8977 sarava_db
     ```
 
 ### Variables de Entorno

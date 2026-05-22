@@ -103,9 +103,15 @@ Transformation of the platform into an overall market radar with a relational ca
     ```
 
 2.  **Database:**
-    Import the initial schema:
+    Create the database and import the initial schema:
     ```bash
     mysql -h 127.0.0.1 -P 3307 -u sarava_user -p8977 < setup_db.sql
+    ```
+
+    **Load Initial Dataset (Recommended):**
+    To instantly populate your local database with the complete dataset sample of the project (~73,000 registered companies, ~19,000 purchase orders, pre-enriched brands and patents):
+    ```bash
+    gunzip < backup_sarava_db.sql.gz | mysql -h 127.0.0.1 -P 3307 -u sarava_user -p8977 sarava_db
     ```
 
 ### Environment Variables
