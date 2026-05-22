@@ -171,6 +171,48 @@ def test_search_empresas_nombre_fantasia_has_value(client, mock_db):
     assert "TRIM(nombre_fantasia) != '-'" in query_executed
 
 
+def test_search_empresas_composite_filters(client, mock_db):
+    """Debe combinar múltiples filtros con AND lógico usando parámetros únicos."""
+    import json
+    import urllib.parse
+    _, mock_conn = mock_db
+    mock_conn.execute.return_value.fetchall.return_value = []
+
+    filters = [
+        {"field": "giro", "condition": "contains", "q": "CONSTRUCCION"},
+        {"field": "region", "condition": "exact", "q": "METROPOLITANA"}
+    ]
+    filters_json = urllib.parse.quote(json.dumps(filters))
+    response = client.get(f"/api/v1/search?filters={filters_json}")
+    assert response.status_code == 200
+    query_executed = str(mock_conn.execute.call_args[0][0])
+    assert "giro LIKE" in query_executed
+    assert "region =" in query_executed
+    assert "AND" in query_executed
+    params = mock_conn.execute.call_args[0][1]
+    assert "f0_term" in params
+    assert "f1_term" in params
+
+
+def test_search_empresas_composite_filters_has_value(client, mock_db):
+    """Debe permitir filtros compuestos que incluyan condición has_value."""
+    import json
+    import urllib.parse
+    _, mock_conn = mock_db
+    mock_conn.execute.return_value.fetchall.return_value = []
+
+    filters = [
+        {"field": "giro", "condition": "has_value", "q": ""},
+        {"field": "comuna", "condition": "contains", "q": "SANTIAGO"}
+    ]
+    filters_json = urllib.parse.quote(json.dumps(filters))
+    response = client.get(f"/api/v1/search?filters={filters_json}")
+    assert response.status_code == 200
+    query_executed = str(mock_conn.execute.call_args[0][0])
+    assert "giro IS NOT NULL" in query_executed
+    assert "comuna LIKE" in query_executed
+
+
 # --- TESTS PARA GET /api/v1/empresas/all ---
 
 def test_get_all_empresas(client, mock_db):

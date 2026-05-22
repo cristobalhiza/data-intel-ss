@@ -2,11 +2,12 @@ from fastapi import FastAPI, HTTPException, Query, Depends, Security
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Any
 from sqlalchemy import create_engine, text, bindparam
 from sqlalchemy.engine import URL
 import os
 import asyncio
+import json
 import etl_mercadopublico_api
 
 # --- Cargar Variables de Entorno ---
@@ -106,25 +107,83 @@ async def get_empresa(
     
     return data
 
+ALLOWED_FIELDS = {"rut", "razon_social", "giro", "comuna", "region", "representante_legal", "email_contacto", "dominio_web", "nombre_fantasia"}
+ALLOWED_CONDITIONS = {"contains", "exact", "starts_with", "has_value"}
+
+def _build_filter_clause(field: str, condition: str, q: str, idx: int) -> tuple[str, dict[str, Any]]:
+    """Build a single WHERE clause fragment and its params."""
+    if field not in ALLOWED_FIELDS:
+        field = "razon_social"
+    if condition not in ALLOWED_CONDITIONS:
+        condition = "contains"
+
+    prefix = f"f{idx}_"
+
+    if condition == "has_value":
+        sql = f"({field} IS NOT NULL AND TRIM({field}) != '' AND TRIM({field}) != '-')"
+        return sql, {}
+
+    if not q or len(q.strip()) < 1:
+        return "1=1", {}
+
+    clean_term = q.strip()
+
+    if condition == "exact":
+        return f"{field} = :{prefix}term", {f"{prefix}term": clean_term}
+    elif condition == "starts_with":
+        return f"{field} LIKE :{prefix}term", {f"{prefix}term": f"{clean_term}%"}
+    else:  # contains
+        if field == "razon_social":
+            clean_alnum = "".join([c for c in clean_term if c.isalnum() or c.isspace()])
+            if len(clean_alnum.strip()) < 3:
+                return f"{field} LIKE :{prefix}term", {f"{prefix}term": f"%{clean_term}%"}
+            else:
+                return f"MATCH({field}) AGAINST(:{prefix}term IN NATURAL LANGUAGE MODE)", {f"{prefix}term": clean_alnum}
+        else:
+            return f"{field} LIKE :{prefix}term", {f"{prefix}term": f"%{clean_term}%"}
+
+
 @app.get("/api/v1/search")
-def search_empresas(q: Optional[str] = Query(None), field: str = Query("razon_social"), condition: str = Query("contains"), provider_only: bool = Query(False)):
-    # (Resto de la lógica de búsqueda se mantiene igual...)
-    allowed_fields = {"rut", "razon_social", "giro", "comuna", "region", "representante_legal", "email_contacto", "dominio_web", "nombre_fantasia"}
-    if field not in allowed_fields: field = "razon_social"
-    sql_where = ""
-    params = {}
-    if condition == "has_value": sql_where = f"({field} IS NOT NULL AND TRIM({field}) != '' AND TRIM({field}) != '-')"
-    else:
-        if not q or len(q.strip()) < 1: return []
-        clean_term = q.strip()
-        if condition == "exact": sql_where, params = f"{field} = :term", {"term": clean_term}
-        elif condition == "starts_with": sql_where, params = f"{field} LIKE :term", {"term": f"{clean_term}%"}
-        else: # contains
-            if field == "razon_social":
-                clean_alnum = "".join([c for c in clean_term if c.isalnum() or c.isspace()])
-                if len(clean_alnum.strip()) < 3: sql_where, params = f"{field} LIKE :term", {"term": f"%{clean_term}%"}
-                else: sql_where, params = f"MATCH({field}) AGAINST(:term IN NATURAL LANGUAGE MODE)", {"term": clean_alnum}
-            else: sql_where, params = f"{field} LIKE :term", {"term": f"%{clean_term}%"}
+def search_empresas(
+    q: Optional[str] = Query(None),
+    field: str = Query("razon_social"),
+    condition: str = Query("contains"),
+    provider_only: bool = Query(False),
+    filters: Optional[str] = Query(None, description="JSON array of filter objects: [{field, condition, q}]"),
+):
+    clauses = []
+    params: dict[str, Any] = {}
+
+    # Support legacy single-filter params AND new composite filters
+    if filters:
+        try:
+            filter_list = json.loads(filters)
+            if isinstance(filter_list, list):
+                for idx, f in enumerate(filter_list):
+                    if not isinstance(f, dict):
+                        continue
+                    f_field = f.get("field", "razon_social")
+                    f_condition = f.get("condition", "contains")
+                    f_q = f.get("q", "")
+                    sql, p = _build_filter_clause(f_field, f_condition, f_q, idx)
+                    clauses.append(sql)
+                    params.update(p)
+        except json.JSONDecodeError:
+            pass
+
+    # Fallback to legacy single-filter if no composite filters were provided
+    if not clauses:
+        sql, p = _build_filter_clause(field, condition, q or "", 0)
+        clauses.append(sql)
+        params.update(p)
+
+    # Remove trivial 1=1 clauses (empty q on non-has_value filters)
+    clauses = [c for c in clauses if c != "1=1"]
+
+    if not clauses:
+        return []
+
+    sql_where = " AND ".join(f"({c})" for c in clauses)
 
     if provider_only:
         sql_where = f"({sql_where}) AND enriquecido_por IN ('CHILECOMPRA_MASIVO', 'MERCADOPUBLICO_API')"

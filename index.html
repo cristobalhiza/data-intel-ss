@@ -119,35 +119,54 @@
                     </button>
                 </div>
                 <div class="p-6">
-                    <div class="grid grid-cols-2 gap-3 mb-4">
-                        <div class="flex flex-col gap-1">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase font-mono">Select_Field</label>
-                            <select x-model="searchField" class="p-3 border-2 border-gray-200 rounded-none bg-gray-50 focus:ring-0 focus:border-primary outline-none text-sm font-bold font-mono">
-                                <option value="razon_social">BUSINESS_NAME</option>
-                                <option value="rut">RUT_ID</option>
-                                <option value="giro">ECONOMIC_ACTIVITY</option>
-                                <option value="comuna">COMMUNE_LOCATION</option>
-                                <option value="region">REGION</option>
-                                <option value="representante_legal">LEGAL_REP</option>
-                                <option value="email_contacto">EMAIL_CONTACT</option>
-                                <option value="dominio_web">WEB_DOMAIN</option>
-                                <option value="nombre_fantasia">FANTASY_NAME</option>
-                            </select>
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <label class="text-[10px] font-bold text-gray-500 uppercase font-mono">Condition</label>
-                            <select x-model="searchCondition" class="p-3 border-2 border-gray-200 rounded-none bg-gray-50 focus:ring-0 focus:border-primary outline-none text-sm font-bold font-mono">
-                                <option value="contains">CONTAINS</option>
-                                <option value="exact">EXACT_MATCH</option>
-                                <option value="starts_with">STARTS_WITH</option>
-                                <option value="has_value">NOT_NULL</option>
-                            </select>
-                        </div>
+                    <!-- Composite Filters -->
+                    <div class="space-y-3 mb-4">
+                        <template x-for="(filter, index) in searchFilters" :key="index">
+                            <div class="grid grid-cols-12 gap-2 items-end">
+                                <div class="col-span-3 flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase font-mono" x-show="index === 0">Field</label>
+                                    <select x-model="filter.field" class="p-2 border-2 border-gray-200 rounded-none bg-gray-50 focus:ring-0 focus:border-primary outline-none text-xs font-bold font-mono">
+                                        <option value="razon_social">BUSINESS_NAME</option>
+                                        <option value="rut">RUT_ID</option>
+                                        <option value="giro">ECONOMIC_ACTIVITY</option>
+                                        <option value="comuna">COMMUNE_LOCATION</option>
+                                        <option value="region">REGION</option>
+                                        <option value="representante_legal">LEGAL_REP</option>
+                                        <option value="email_contacto">EMAIL_CONTACT</option>
+                                        <option value="dominio_web">WEB_DOMAIN</option>
+                                        <option value="nombre_fantasia">FANTASY_NAME</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-3 flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase font-mono" x-show="index === 0">Condition</label>
+                                    <select x-model="filter.condition" class="p-2 border-2 border-gray-200 rounded-none bg-gray-50 focus:ring-0 focus:border-primary outline-none text-xs font-bold font-mono">
+                                        <option value="contains">CONTAINS</option>
+                                        <option value="exact">EXACT_MATCH</option>
+                                        <option value="starts_with">STARTS_WITH</option>
+                                        <option value="has_value">NOT_NULL</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-5 flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase font-mono" x-show="index === 0">Value</label>
+                                    <input type="text" x-model="filter.q" @keyup="debouncedSearch()" @keyup.enter="executeSearch" :disabled="filter.condition === 'has_value'" :placeholder="filter.condition === 'has_value' ? 'NULL_PARAM' : 'SEARCH_STRING...'" :class="{'bg-gray-100 opacity-70': filter.condition === 'has_value'}" class="w-full p-2 border-2 border-gray-200 rounded-none focus:ring-0 focus:border-primary outline-none transition-all font-mono text-xs">
+                                </div>
+                                <div class="col-span-1 pb-1">
+                                    <button @click="removeFilter(index)" x-show="searchFilters.length > 1" class="text-gray-400 hover:text-red-500 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
                     </div>
-
-                    <div class="relative mb-4">
-                        <input type="text" x-model="searchQuery" @keyup="debouncedSearch()" @keyup.enter="executeSearch" :disabled="hasSearchInputDisabled" :placeholder="hasSearchInputDisabled ? 'NULL_PARAM' : 'SEARCH_STRING...'" :class="{'bg-gray-100 opacity-70': hasSearchInputDisabled}" class="w-full p-4 pl-12 border-2 border-gray-200 rounded-none focus:ring-0 focus:border-primary outline-none transition-all font-mono text-sm">
-                        <svg class="w-5 h-5 absolute left-4 top-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    
+                    <div class="flex justify-between items-center mb-4">
+                        <button @click="addFilter()" class="text-[10px] font-bold text-secondary hover:text-primary transition-colors uppercase font-mono flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            ADD_FILTER
+                        </button>
+                        <button @click="clearFilters()" class="text-[10px] font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase font-mono">
+                            CLEAR_ALL
+                        </button>
                     </div>
                     
                     <div class="mb-6 flex flex-wrap items-center gap-3">
@@ -165,7 +184,7 @@
                     </div>
                     
                     <div class="mt-auto">
-                        <button @click="executeSearch" :disabled="isLoading || (!hasSearchInputDisabled && !searchQuery.trim())" class="bg-primary text-darkText px-6 py-3 border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(248,199,26,0.6)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all w-full font-bold flex justify-center items-center gap-2">
+                        <button @click="executeSearch" :disabled="isLoading || !canExecuteSearch" class="bg-primary text-darkText px-6 py-3 border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(248,199,26,0.6)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all w-full font-bold flex justify-center items-center gap-2">
                             <span x-show="!isLoading">EXECUTE_SEARCH_QUERY</span>
                             <svg x-show="isLoading" x-cloak class="animate-spin h-5 w-5 text-darkText" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                         </button>
@@ -300,7 +319,7 @@
                                     </div>
                                     <div class="text-[10px] text-gray-500 mt-1 uppercase tracking-tight">FANTASIA: <span class="font-bold text-gray-700" x-text="row.nombre_fantasia || '-'"></span></div>
                                     <div class="mt-1 flex flex-wrap gap-1">
-                                        <span class="db-badge text-[9px] text-gray-600" x-text="(row.giro || '-').substring(0, 40)"></span>
+                                        <span class="db-badge text-[9px] text-gray-600 max-w-[200px] whitespace-normal break-words" x-text="row.giro || '-'"></span>
                                     </div>
                                 </td>
                                 <td class="p-3 align-top">
@@ -761,9 +780,7 @@
                 batchInput: '',
                 
                 // Search
-                searchQuery: '',
-                searchField: 'razon_social',
-                searchCondition: 'contains',
+                searchFilters: [{field: 'razon_social', condition: 'contains', q: ''}],
                 providerOnly: false,
                 searchDebounce: null,
                 
@@ -778,8 +795,8 @@
                 ],
                 activeQuickFilters: [],
                 
-                get hasSearchInputDisabled() {
-                    return this.searchCondition === 'has_value';
+                get canExecuteSearch() {
+                    return this.searchFilters.some(f => f.condition === 'has_value' || (f.q || '').trim().length >= 1);
                 },
                 
                 get totalPages() {
@@ -889,17 +906,37 @@
                     }
                 },
                 
+                addFilter() {
+                    this.searchFilters.push({field: 'razon_social', condition: 'contains', q: ''});
+                },
+                
+                removeFilter(index) {
+                    if (this.searchFilters.length > 1) {
+                        this.searchFilters.splice(index, 1);
+                    }
+                },
+                
+                clearFilters() {
+                    this.searchFilters = [{field: 'razon_social', condition: 'contains', q: ''}];
+                    this.allResults = [];
+                },
+                
                 async executeSearch() {
-                    if (!this.hasSearchInputDisabled && this.searchQuery.trim().length < 1) return;
+                    if (!this.canExecuteSearch) return;
                     
                     this.isLoading = true;
                     this.resetPagination();
                     
                     try {
-                        let url = `${this.apiBase}/search?field=${this.searchField}&condition=${this.searchCondition}&provider_only=${this.providerOnly}`;
-                        if (!this.hasSearchInputDisabled) {
-                            url += `&q=${encodeURIComponent(this.searchQuery.trim())}`;
-                        }
+                        const activeFilters = this.searchFilters
+                            .filter(f => f.condition === 'has_value' || (f.q || '').trim().length >= 1)
+                            .map(f => ({
+                                field: f.field,
+                                condition: f.condition,
+                                q: f.condition === 'has_value' ? '' : f.q.trim()
+                            }));
+                        
+                        let url = `${this.apiBase}/search?provider_only=${this.providerOnly}&filters=${encodeURIComponent(JSON.stringify(activeFilters))}`;
                         const response = await fetch(url);
                         if (!response.ok) throw new Error('Error in search server');
                         this.allResults = await response.json();
@@ -913,7 +950,7 @@
                 debouncedSearch() {
                     clearTimeout(this.searchDebounce);
                     this.searchDebounce = setTimeout(() => {
-                        if (this.searchQuery.trim().length >= 2 || this.searchCondition === 'has_value') {
+                        if (this.canExecuteSearch) {
                             this.executeSearch();
                         }
                     }, 400);

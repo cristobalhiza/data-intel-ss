@@ -285,4 +285,10 @@ Durante la investigación, diseño e implementación de este Hub de Inteligencia
     *   **Exposición de Actividades en API:** Se agregó `actividades_economicas` al SELECT del endpoint `/api/v1/empresa` en `api_sarava.py`, permitiendo que el frontend acceda al array JSON de actividades.
     *   **Fallback Visual en Frontend (`index.html`):** El dashboard ahora muestra el campo `giro` como actividad económica cuando no existe el objeto `actividades_economicas` detallado, eliminando el mensaje engañoso de "Not available".
     *   **Resultado:** **51,324 empresas (69.5% del directorio)** ahora tienen giros/activividades económicas reales provenientes del SII. El suite completo mantiene **126 tests en verde**.
+*   **Sistema de Filtros Compuestos y Visualización de Giros (Mayo 2026):**
+    *   **Truncamiento Corregido:** Se eliminó el corte artificial de 40 caracteres en el campo `giro` de la tabla de resultados. Ahora se utiliza `break-words` y `whitespace-normal` para que las actividades económicas largas se visualicen completas sin romper el layout.
+    *   **API de Filtros Compuestos:** Se refactorizó `/api/v1/search` para aceptar un nuevo parámetro `filters` (JSON array) que permite combinar múltiples condiciones con AND lógico (ej: `giro CONTAINS 'CONSTRUCCION' AND region EXACT 'METROPOLITANA'`). Se mantiene retrocompatibilidad total con los parámetros legacy (`field`, `condition`, `q`).
+    *   **Rediseño de UI de Búsqueda Avanzada:** El panel `[MASTER_SEARCH_FILTER]` ahora permite agregar/quitar múltiples filtros dinámicamente. Cada filtro tiene su propio selector de campo, condición y caja de texto, con botones `ADD_FILTER`, `CLEAR_ALL` y eliminación individual (`×`).
+    *   **Tests de Regresión:** Se agregaron `test_search_empresas_composite_filters` y `test_search_empresas_composite_filters_has_value` para validar la generación de SQL con parámetros únicos (`f0_term`, `f1_term`, etc.) y la combinación de `has_value` + `contains`.
+    *   **Resultado:** **128 tests pasan de manera robusta (`100% verde` real)**.
 

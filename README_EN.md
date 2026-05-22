@@ -286,3 +286,9 @@ During the research, design, and implementation of this Intelligence Hub, we fac
     *   **Frontend Fallback (`index.html`):** The dashboard now displays the `giro` field as economic activity when the detailed `actividades_economicas` object is absent, eliminating the misleading "Not available" message.
     *   **Recommended Execution:** Every 2 weeks or on-demand, as the SII updates its nominas monthly.
     *   **Result:** **51,324 companies (69.5% of the directory)** now have real economic activities from the SII. The full suite remains at **126 tests green**.
+*   **Composite Filters System and Giro Display Fix (May 2026):**
+    *   **Truncation Fixed:** Removed the artificial 40-character cutoff in the `giro` column of the results table. Now uses `break-words` and `whitespace-normal` so long economic activities display fully without breaking layout.
+    *   **Composite Filters API:** Refactored `/api/v1/search` to accept a new `filters` parameter (JSON array) allowing multiple conditions combined with AND logic (e.g., `giro CONTAINS 'CONSTRUCCION' AND region EXACT 'METROPOLITANA'`). Full backward compatibility maintained with legacy params (`field`, `condition`, `q`).
+    *   **Advanced Search UI Redesign:** The `[MASTER_SEARCH_FILTER]` panel now supports adding/removing multiple dynamic filters. Each filter has its own field selector, condition selector, and text input, with `ADD_FILTER`, `CLEAR_ALL`, and individual remove (`×`) buttons.
+    *   **Regression Tests:** Added `test_search_empresas_composite_filters` and `test_search_empresas_composite_filters_has_value` to validate SQL generation with unique parameters (`f0_term`, `f1_term`, etc.) and the combination of `has_value` + `contains`.
+    *   **Result:** **128 tests passing robustly (`100% green` real)**.
